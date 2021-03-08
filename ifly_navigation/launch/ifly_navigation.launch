@@ -1,0 +1,39 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="model" default="robot"/>
+  <arg name="map_file" default="$(find ifly_navigation)/maps/map.yaml"/>
+  <arg name="open_rviz" default="true"/>
+  <arg name="move_forward_only" default="false"/>
+  <arg name="multi_robot_name" default="false"/>
+  <arg name="local_planner_method" default="dwa" doc="teb"/>
+
+  <!-- 加载模型 -->
+  <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find gazebo_pkg)/urdf/waking_robot.xacro'" />
+  <!-- <param name="robot_description" command="$(arg urdf_file)" /> -->
+
+  <!-- Map server -->
+  <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
+
+  <!-- AMCL -->
+  <include file="$(find ifly_navigation)/launch/amcl.launch"/>
+  <!-- <include file="$(find amcl)/examples/amcl_diff.launch" /> -->
+
+  <!-- move_base -->
+  <include file="$(find ifly_navigation)/launch/move_base.launch">
+    <arg name="model" value="$(arg model)" />
+    <arg name="move_forward_only" value="$(arg move_forward_only)"/>
+  </include>
+
+  <!-- rviz -->
+  <group if="$(arg open_rviz)"> 
+    <node pkg="rviz" type="rviz" name="rviz" required="true"
+          args="-d $(find ifly_navigation)/rviz/ifly_navigation_dwa_rviz.rviz"/>
+  </group>
+
+  <!-- nav_keypoints -->
+  <!-- <node pkg="ifly_navigation" name="nav_keypoints" type="nav_keypoints.py"/> -->
+
+  <!-- judement -->
+  <!-- <node pkg = "controller" name="judement" type="judement.py"/> -->
+
+</launch>

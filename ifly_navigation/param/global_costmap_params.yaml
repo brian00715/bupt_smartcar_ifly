@@ -1,0 +1,18 @@
+global_costmap:
+  global_frame: map
+  robot_base_frame: base_footprint
+  use_dijkstra: false # use a*
+
+  update_frequency: 10.0 # default 10.0
+  publish_frequency: 10.0 # default 10.0
+  transform_tolerance: 10
+
+  static_map: true #default true
+
+  # plugins:
+  #   - {name: static_layer,    type: "costmap_2d::StaticLayer"}
+  #   - {name: obstacle_layer,  type: "costmap_2d::ObstacleLayer"}
+  #   - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+
+  # rolling_window: false
+  # track_unknown_space: true
