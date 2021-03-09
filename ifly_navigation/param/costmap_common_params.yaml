@@ -7,9 +7,11 @@ footprint: [[0.16, 0.16], [0.16, -0.16], [-0.16, -0.16], [-0.16, 0.16]]
 always_send_full_costmap: true
 
 inflation_radius: 0.5 # default 1.0 ;    0.5   0.8  is good
-cost_scaling_factor: 15.0 # default 3.0; 10.0   7.0  is good
+cost_scaling_factor: 12.0 # default 3.0; 10.0   7.0  is good
 
 map_type: costmap
 observation_sources: scan
 scan: {sensor_frame: laser_frame, data_type: LaserScan, topic: scan, marking: true, clearing: true}
 # scan: {data_type: LaserScan, topic: scan, marking: true, clearing: true}
+
+track_unknown_space: false # default false
