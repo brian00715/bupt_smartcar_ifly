@@ -11,7 +11,7 @@ import rosparam
 
 # [x,y,yaw]
 key_points = [
-    [4.646070, -1.056370, -2.934374],  # 1
+    # [4.646070, -1.056370, -2.934374],  # 1
     # [0.340850, -1.586957, -0.692067],  # 2
     # [1.259208, -1.987169, -0.134658],  # 3
 
@@ -22,8 +22,8 @@ key_points = [
 
     # [4.646070, -1.056370, -2.934374],  # 7
 
-    [4.574752, -5.421958, -2.582068],  # 8
-    [0.623058, -5.807445, 2.565789],  # teb中为防止终点震荡单独附加一个限速点
+    # [4.574752, -5.421958, -2.582068],  # 8
+    # [0.623058, -5.807445, 2.565789],  # teb中为防止终点震荡单独附加一个限速点
     [-0.152626, -5.304393, 2.446521]  # 9
 ]
 
@@ -58,24 +58,27 @@ if __name__ == '__main__':
     if local_planner == 'teb_local_planner/TebLocalPlannerROS':
         recon_client = dynamic_reconfigure.client.Client(
             '/move_base/TebLocalPlannerROS')
-    elif local_planner == 'teb_local_planner/TebLocalPlannerROS':
+    elif local_planner == 'dwa_local_planner/DWAPlannerROS':
         recon_client = dynamic_reconfigure.client.Client(
             '/move_base/DWAPlannerROS')
+    elif local_planner == 'teb_local_planner/EBandPlannerROS':
+        recon_client = dynamic_reconfigure.client.Client(
+            '/move_base/EBandPlannerROS')
 
     for i in range(len(key_points)):
-        if i == 0:  # 第一段
-            params = {'max_vel_x': 1.5, 'max_vel_theta': 2.0}
-            config = recon_client.update_configuration(params)
-            config = recon_client.update_configuration(params)
-        elif i == len(key_points)-2:
-            params = {'max_vel_x': 1.0, 'max_vel_theta': 2.0}
-            config = recon_client.update_configuration(params)
-        elif i == len(key_points)-1:  # 目标点是最后一个
-            params = {'max_vel_x': 0.6, 'max_vel_theta': 2.0}
-            config = recon_client.update_configuration(params)
-        else:  # 多弯段
-            params = {'max_vel_x': 0.8, 'max_vel_theta': 3.0}
-            config = recon_client.update_configuration(params)
+        # if i == 0:  # 第一段
+        #     params = {'max_vel_x': 1.5, 'max_vel_theta': 2.0}
+        #     config = recon_client.update_configuration(params)
+        #     config = recon_client.update_configuration(params)
+        # elif i == len(key_points)-2:
+        #     params = {'max_vel_x': 1.0, 'max_vel_theta': 2.0}
+        #     config = recon_client.update_configuration(params)
+        # elif i == len(key_points)-1:  # 目标点是最后一个
+        #     params = {'max_vel_x': 0.6, 'max_vel_theta': 2.0}
+        #     config = recon_client.update_configuration(params)
+        # else:  # 多弯段
+        #     params = {'max_vel_x': 0.8, 'max_vel_theta': 3.0}
+        #     config = recon_client.update_configuration(params)
         move_goal = MoveBaseGoal()
         move_goal.target_pose.header.frame_id = 'map'
         move_goal.target_pose.pose.position.x = key_points[i][0]

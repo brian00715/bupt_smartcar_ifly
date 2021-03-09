@@ -25,7 +25,7 @@ if __name__ == '__main__':
         rospy.sleep(1)
         objstate = get_state_service(model)  # 发送服务请求
         state = (objstate.pose.position.x, objstate.pose.position.y)
-        if state[0] > 0.00025  and start_flag == 0:
+        if state[0] > 0.1  and start_flag == 0:
             print('--比赛开始！')
             start_flag = 1
             start_time = rospy.get_time()
