@@ -46,6 +46,14 @@ rosrun controller auto_navi.py
    rosrun ifly_navigation nav_keypoints.py
    ```
    
+   动态调参：
+   
+   ```sh
+   rosrun rqt_reconfigure rqt_reconfigure
+   ```
+   
+   
+   
 5. 比赛计时
 
    ```sh
