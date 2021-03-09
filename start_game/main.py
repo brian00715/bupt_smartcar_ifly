@@ -31,7 +31,7 @@ def launch_pkg():
     nav_cmd = [
         'roscore',
         'sleep 5; roslaunch gazebo_pkg race.launch', 
-        'sleep 5; roslaunch gazebo_nav navi_demo.launch'
+        'sleep 5; roslaunch ifly_navigation ifly_navigation.launch'
     ]
     open_terminal(nav_cmd)
 

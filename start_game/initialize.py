@@ -148,7 +148,7 @@ def config_env():
     show('正在修改环境变量...')
 
     env_path = '~/.bashrc'
-    words = 'source ~/gazebo_test_ws/devel/setup.bash'
+    words = 'source ~/ifly_race_ws/devel/setup.bash'
     if not search_str(env_path, words):
         os.system("echo '%s' >> ~/.bashrc" %words)
         show('环境变量已正确配置')
@@ -180,7 +180,7 @@ def init():
     while not get_bool_ans('是否已开启录屏？'):
         show('请按照规则开启录屏！')
 
-    md5_result = md5sum_dir('~/gazebo_test_ws/src/gazebo_pkg/urdf')                             # 计算原始文件 MD5 摘要
+    md5_result = md5sum_dir('~/ifly_race_ws/src/gazebo_pkg/urdf')                             # 计算原始文件 MD5 摘要
 
 #    build_pkg()
     config_env()
@@ -197,7 +197,7 @@ def uninit():
 
     # md5_result = md5sum_dir('~/.gazebo/models')
     # md5_result = md5sum_dir('~/iflytek_gazebo_ws/src/gazebo_pkg', md5_result)
-    md5_result = md5sum_dir('~/gazebo_test_ws/src/gazebo_pkg/urdf')
+    md5_result = md5sum_dir('~/ifly_race_ws/src/gazebo_pkg/urdf')
 
     
     return md5_result
@@ -207,7 +207,7 @@ if __name__  == '__main__':
         md5_result1 = md5sum_dir('resources')
 
         md5_result2 = md5sum_dir('~/.gazebo/models')
-        md5_result2 = md5sum_dir('~/iflytek_gazebo_ws/src/gazebo_pkg/urdf', md5_result2)
+        md5_result2 = md5sum_dir('~/ifly_race_ws/src/gazebo_pkg/urdf', md5_result2)
 
         print(id(md5_result1))
         print(id(md5_result2))
