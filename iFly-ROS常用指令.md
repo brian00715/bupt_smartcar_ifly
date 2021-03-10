@@ -58,4 +58,8 @@ rosrun controller auto_navi.py
    rosrun controller reset_model.py
    ```
 
-   
+7.打印当前坐标
+
+   ```sh
+   rostopic echo amcl_pose -n 1
+   ```

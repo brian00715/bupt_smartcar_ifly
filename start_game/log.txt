@@ -1,0 +1,5 @@
+[16:39:36.758]Wed Mar 10 2021, Timezone: CST
+[16:39:36.758]比赛记录脚本 Ver0.1
+[16:39:36.758]Platform: Linux-5.4.0-66-generic-x86_64-with-Ubuntu-18.04-bionic
+[16:39:36.759]Username: luke
+[16:39:36.759]是否已开启录屏？ [Y/N] 
