@@ -4,8 +4,8 @@
   <arg name="cmd_vel_topic" default="/cmd_vel" />
   <arg name="odom_topic" default="odom" />
   <arg name="move_forward_only" default="false"/>
-  <!-- <arg name="local_planner_method" default="dwa_local_planner" doc="teb_local_planner base_local_planner"/> -->
-  <arg name="local_planner_method" default="dwa_local_planner"/>
+  <arg name="local_planner_method" default="dwa_local_planner" doc="teb_local_planner base_local_planner"/>
+  <!-- <arg name="local_planner_method" default="dwa_local_planner"/> -->
 
 
   <!-- move_base -->
