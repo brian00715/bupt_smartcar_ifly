@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from sensor_msgs.msg import Imu
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
+import pid
 
 # pure_pursuit参数
 k = 0.1  # 前视距离系数
@@ -88,6 +89,7 @@ class PathFollower:
         #     self.linear_vel_x, self.linear_acc_x, self.angular_vel_z, self.yaw))
 
     def update_position(self, odom_data):
+        """更新坐标以及线速度"""
         self.x = odom_data.pose.pose.position.x
         self.y = odom_data.pose.pose.position.y
         if self.vel_update_start_flag == 1:
@@ -99,13 +101,13 @@ class PathFollower:
             self.last_x = self.x
             # print("linear_vel_x:%5.2f linear_acc_x:%5.2f angular_vel_z:%5.2f yaw:%5.2f" % (
             #     self.linear_vel_x, self.linear_acc_x, self.angular_vel_z, self.yaw))
-
+    
 
 if __name__ == '__main__':
     # settings = termios.tcgetattr(sys.stdin)
 
     rospy.init_node('pure_pursuit_controller')
-    vel_pub = rospy.Publisher('/vel_ctrl', Twist, queue_size=5)
+    vel_pub = rospy.Publisher('/vel_ctrl', Twist, queue_size=1)
     path_follower = PathFollower()
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
@@ -117,6 +119,8 @@ if __name__ == '__main__':
         key_timeout = None
 
     twist = Twist()
+    ang_vel_pid = pid.PID_t(0.2,0,0)
+    ang_pid = pid.PID_t(2.0,0,0.1)
 
     while True:
         # key = get_key(key_timeout)
@@ -124,9 +128,13 @@ if __name__ == '__main__':
         #     exit(0)
         #     pass
         # else:
+        # ang_vel_ctrl = ang_vel_pid.get_output(path_follower.angular_vel_z,2.0)
+        ang_ctrl_value = ang_pid.get_output(path_follower.yaw,3.14)
+        print (ang_ctrl_value)
+        twist.angular.z = ang_ctrl_value
+        twist.linear.x = 0
+        vel_pub.publish(twist)
 
-        # for pose in path_follower.global_path.poses:
-        #     print(pose.pose.position.x)
         poses = path_follower.global_path.poses
         if len(poses) != 0:
             # print(poses[0].pose.position.x)
