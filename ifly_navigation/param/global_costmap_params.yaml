@@ -1,7 +1,6 @@
 global_costmap:
   global_frame: map
-  robot_base_frame: base_footprint
-  use_dijkstra: false # use a*
+  robot_base_frame: dummy # default base_footprint
 
   update_frequency: 10.0 # default 10.0
   publish_frequency: 10.0 # default 10.0

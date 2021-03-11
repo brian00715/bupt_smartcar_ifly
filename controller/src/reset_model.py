@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     set_request.model_state.model_name = "Construction Cone2"
     set_request.model_state.pose.position.x = 0.019899
-    set_request.model_state.pose.position.y = -1.01047
+    set_request.model_state.pose.position.y = -1.603500
     set_request.model_state.pose.position.z = 0
     set_state_service(set_request)
 
