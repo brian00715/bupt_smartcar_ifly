@@ -6,8 +6,6 @@ import dynamic_reconfigure.client
 import rosparam
 import rospy
 import tf
-from gazebo_msgs.srv import (GetModelState, GetModelStateRequest,
-                             GetWorldProperties)
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from nav_msgs.msg import Odometry
 
