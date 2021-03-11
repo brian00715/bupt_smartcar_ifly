@@ -1,57 +1,61 @@
 DWAPlannerROS:
   holonomic_robot: false
 # Robot Configuration Parameters
-  max_vel_x: 3.0 # default 0.22
-  min_vel_x: -1.2 # default -0.22
+  max_vel_x: 1.0 # default 0.22
+  min_vel_x: -1.0 # default -0.22
 
   max_vel_y: 0.0 # for diff drive robot
   min_vel_y: 0.0
 
 # The velocity when robot is moving in a straight line
   # 最大平移速度
-  max_vel_trans:  3.0 # default 0.22
-  min_vel_trans:  0.11 # default 0.11
+  max_vel_trans: 1.0 # default 0.22
+  min_vel_trans:  -1.0 # default 0.11
   
   # 角速度
   max_vel_theta: 10.0 # default 2.75
-  min_vel_theta: 4.5 # default 1.37
+  min_vel_theta: -5.0 # default 1.37
 
-  min_in_place_vel_theta: 1.0 # 最小的原地旋转速度 0.5 is good
+  min_in_place_vel_theta: 0.2 # 最小的原地旋转速度 0.5 is good
 
   backup_vel: -1.0
-  escape_vel: -1.0
+  escape_vel: -1.5
 
-  acc_lim_x: 6.0 # default 2.5
+  acc_lim_x: 10 # default 2.5
   acc_lim_y: 0.0
-  acc_lim_theta: 12.0 # default 3.2 
+  acc_lim_theta: 10 # default 3.2 
 
 # Goal Tolerance Parametes
-  xy_goal_tolerance: 0.05
-  yaw_goal_tolerance: 0.17
+  xy_goal_tolerance: 0.02
+  yaw_goal_tolerance: 0.1
   latch_xy_goal_tolerance: false
 
 # Forward Simulation Parameters
-  sim_time: 0.5 # default 1.5
-  vx_samples: 20 # default 20
-  vy_samples: 0
-  vth_samples: 40 # default 40
-  controller_frequency: 10.0 # 调用控制器的频率，default 10.0
-  sim_granularity: 0.025 # 仿真粒度
+  sim_time: 1.2 # default 1.5
+  vx_samples: 25 # default 20
+  vy_samples: 1
+  vth_samples: 45 # default 40
+  controller_frequency: 20.0 # 调用控制器的频率，default 10.0
+  sim_granularity: 0.015 #0.025 # 仿真粒度
 
 # Trajectory Scoring Parameters
-  path_distance_bias: 64.0 # dafault 32.0 与全局目标的接近程度,将path_distance_bias参数增大，将使机器人更紧密地跟随路径，同时以快速向目标向前移动。如果这个值设置得太高，机器人将会拒绝移动，因为移动的代价大于停留在路径上的位置。
+  path_distance_bias: 40.0 # dafault 32.0 与全局目标的接近程度,将path_distance_bias参数增大，将使机器人更紧密地跟随路径，同时以快速向目标向前移动。如果这个值设置得太高，机器人将会拒绝移动，因为移动的代价大于停留在路径上的位置。
   goal_distance_bias: 20.0 # default 20.0 与局部目标的接近程度
-  occdist_scale: 0.1 # default 0.02 # 防撞系数
-  forward_point_distance: 0.325
-  stop_time_buffer: 0.5 # default0.2 为防止碰撞,机器人必须提前停止的时间长
+  occdist_scale: 0.03 # default 0.02 # 防撞系数
+  forward_point_distance: 0.325 #以机器人为中心，额外放置一个计分点的距离
+  stop_time_buffer: 0.2 # default0.2 为防止碰撞,机器人必须提前停止的时间长
   scaling_speed: 0.25 # default 0.25
-  max_scaling_factor: 0.2
+  max_scaling_factor: 0.2  #最大缩放因子
 
 # Oscillation Prevention Parameters
-  oscillation_reset_dist: 0.05
+  oscillation_reset_dist: 0.05  #机器人必须运动多少米远后才能复位震荡标记(机器人运动多远距离才会重置振荡标记)
 
-# Debugging
-  publish_traj_pc : true # true
-  publish_cost_grid_pc: true # true
+# Debugging 调试参数
+  publish_traj_pc : true #将规划的轨迹在RVIZ上进行可视化
+  publish_cost_grid_pc: true
+  #将代价值进行可视化显示
+  #是否发布规划器在规划路径时的代价网格.如果设置为true,那么就会在~/cost_cloud话题上发布sensor_msgs/PointCloud2类型消息.
+  global_frame_id: odom #全局参考坐标系为odom
 
-  
+
+meter_scoring: true

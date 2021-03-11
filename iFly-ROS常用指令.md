@@ -63,3 +63,9 @@ rosrun controller auto_navi.py
    ```sh
    rostopic echo amcl_pose -n 1
    ```
+
+   8.rqt_reconfigure
+
+   ```sh
+   rosrun rqt_reconfigure rqt_reconfigure
+   ```
