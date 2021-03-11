@@ -31,7 +31,7 @@
   </group>
 
   <!-- nav_keypoints -->
-  <!-- <node pkg="ifly_navigation" name="nav_keypoints" type="nav_keypoints.py"/> -->
+  <node pkg="ifly_navigation" name="nav_keypoints" type="nav_keypoints.py"/>
 
   <!-- judement -->
   <!-- <node pkg = "controller" name="judement" type="judement.py"/> -->

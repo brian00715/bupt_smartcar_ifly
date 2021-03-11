@@ -2,40 +2,40 @@ EBandPlannerROS:
   # common parameters
   xy_goal_tolerance: 0.1 #Distance tolerance for reaching the goal pose
   yaw_goal_tolerance: 0.05 #Orientation tolerance for reaching the desired goal pose
-  rot_stopped_vel: 0.01 # Angular velocity lower bound that determines if the robot should stop to avoid limit-cycles or locks
-  trans_stopped_vel: 0.01 #Linear velocity lower bound that determines if the robot should stop to avoid limit-cycles or locks
+  rot_stopped_vel: 0.01 #  确定机器人是否应该停止 以避免极限循环或锁定的 角速度下限
+  trans_stopped_vel: 0.01 #  确定机器人是否应该停止 以避免极限循环或锁定的 线速度下限
 
   # visualization parameters
-  marker_lifetime: 0.5 #Lifetime of eband visualization markers
+  marker_lifetime: 0.5 #eband可视化标记的生命周期
 
-  # eband local planner parameters
-  eband_min_relative_overlap: 0.7 #Min distance that denotes connectivity between consecutive bubbles
-  eband_tiny_bubble_distance: 0.01 #Bubble geometric bound regarding tiny bubble distance
-  eband_tiny_bubble_expansion: 0.01 #Bubble geometric bound regarding tiny bubble expansion
-  eband_internal_force_gain: 1.0 # Force gain of forces between consecutive bubbles that tend to stretch the elastic band
-  eband_external_force_gain: 2.0 #Force gain of forces that tend to move the bubbles away from obstacles
-  num_iterations_eband_optimization: 3 #Number of iterations for eband optimization
-  eband_equilibrium_approx_max_recursion_depth: 4 #Number of iterations for reaching the equilibrium between internal and external forces
-  eband_equilibrium_relative_overshoot: 0.75 #Maximum relative equlibrium overshoot
-  eband_significant_force_lower_bound: 0.15 #Minimum magnitude of force that is considered significant and used in the calculations
-  costmap_weight: 10.0 #Costmap weight factor used in the calculation of distance to obstacles
+  # eband local planner parameters | 松紧带参数
+  eband_min_relative_overlap: 0.7 #连续气泡之间的连通性的最小距离Min distance that denotes connectivity between consecutive bubbles
+  eband_tiny_bubble_distance: 0.01 #微小气泡距离的气泡几何边界Bubble geometric bound regarding tiny bubble distance
+  eband_tiny_bubble_expansion: 0.01 #微小气泡膨胀的气泡几何边界Bubble geometric bound regarding tiny bubble expansion
+  eband_internal_force_gain: 1.0 # 连续气泡之间趋于拉伸弹性带的力的力增益Force gain of forces between consecutive bubbles that tend to stretch the elastic band
+  eband_external_force_gain: 2.0 #趋于使气泡远离障碍物的力的增力Force gain of forces that tend to move the bubbles away from obstacles
+  num_iterations_eband_optimization: 3 #束带优化的迭代次数Number of iterations for eband optimization
+  eband_equilibrium_approx_max_recursion_depth: 4 #达到内外力平衡的迭代次数Number of iterations for reaching the equilibrium between internal and external forces
+  eband_equilibrium_relative_overshoot: 0.75 #最大相对平衡超调Maximum relative equlibrium overshoot
+  eband_significant_force_lower_bound: 0.15 #计算中使用的最小力的大小，被认为是重要的Minimum magnitude of force that is considered significant and used in the calculations
+  costmap_weight: 15.0 # Costmap权重因子，用于计算到障碍物的距离 default 10.0 Costmap weight factor used in the calculation of distance to obstacles
 
   # trajectory controller parameters
-  max_vel_lin: 0.75 #Maximum linear velocity
-  max_vel_th: 1.0 #Maximum angular velocity
+  max_vel_lin: 1.5 #Maximum linear velocity
+  max_vel_th: 4.0 #Maximum angular velocity
   min_vel_lin: 0.1 #Minimum linear velocity
   min_vel_th: 0.0
   min_in_place_vel_th: 0.0
   in_place_trans_vel: 0.0 #Minimum in place linear velocity
-  k_prop: 4.0 #Proportional gain of the PID controller
-  k_damp: 3.5 #Damping gain of the PID controller
-  Ctrl_Rate: 10.0 
-  max_acceleration: 0.5 #Maximum allowable acceleration
-  virtual_mass: 0.75 
-  max_translational_acceleration: 0.5 #Maximum linear acceleration
-  max_rotational_acceleration: 1.5 #Maximum angular acceleration
-  rotation_correction_threshold: 0.5 
+  k_prop: 3.0 # default 4.0 Proportional gain of the PID controller
+  k_damp: 7 # default 3.5 Damping gain of the PID controller
+  Ctrl_Rate: 15.0 # default 10.0
+  max_acceleration: 2.0 # defualt 0.5 Maximum allowable acceleration
+  virtual_mass: 0.75
+  max_translational_acceleration: 0.5 #default 0.5 Maximum linear acceleration
+  max_rotational_acceleration: 1.5 # default 1.5 Maximum angular acceleration
+  rotation_correction_threshold: 0.5 # default 0.5 旋转校正阈值
   differential_drive: True
-  bubble_velocity_multiplier: 2.0 #Multiplier of bubble radius
-  rotation_threshold_multiplier: 1.0 #Multiplier of rotation threshold
-  disallow_hysteresis: False #Determines whether to try getting closer to the goal, in case of going past the tolerance
+  bubble_velocity_multiplier: 2.0 # 气泡半径的倍数 Multiplier of bubble radius
+  rotation_threshold_multiplier: 1.0 # 旋转阈值乘数 Multiplier of rotation threshold
+  disallow_hysteresis: True # 确定在超出公差范围时是否尝试接近目标 Determines whether to try getting closer to the goal, in case of going past the tolerance
