@@ -11,28 +11,32 @@ from gazebo_msgs.srv import (GetModelState, GetModelStateRequest,
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from nav_msgs.msg import Odometry
 
-# [x,y,yaw,max_vel_x]
+# [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
-    [3.511233, -0.000090, 0.000, 1.0],  # 1
-    [4.042557, -1.565172, 3.082496, 0.8],  # 2
-    [1.995490, -1.044512, -2.983582, 0.8],  # 3
-    # [4.646070, -1.056370, -2.934374],  # 4
-    # [2.218460, -2.536215, -1.542630],  # 5
-    # [0.661139, -3.180960, -1.812663],  # 6
-    # [4.646070, -1.056370, -2.934374],  # 7
-    [1.504895, -4.168083, 0.000, 1.2],  # 8
-    [4.295692, -3.125136, 0.000, 1.0],  # 9
-    [4.627578, -5.242858, -2.392219, 1.5],  # 10
-    [0.808115,-5.753578, 2.719827, 1.2],  # 11 teb中为防止终点震荡单独附加一个限速点
-    [-0.2504603767395, -5.2709980011, 2.446521, 0.0]  # 12 终点
+    [3.511233, -0.000090, 0.000, 1.0,1.3],  # 1
+    [4.042557, -1.565172, 3.082496, 0.9,1.3],  # 2
+    [2.936867, -1.032038, -3.14, 1.2,1.3],  # 3
+    [1.995490, -1.044512, -2.983582, 0.9,1.5],  # 4
+    # [4.646070, -1.056370, -2.934374,1.3],  # 5
+    # [2.218460, -2.536215, -1.542630,1.3],  # 6
+    # [0.661139, -3.180960, -1.812663,1.3],  # 7
+    # [4.646070, -1.056370, -2.934374,1.3],  # 8
+    [1.504895, -4.168083, 0.000, 1.3,1.3],  # 9
+    [2.956114, -4.201780, 0.000, 0.9,1.5],  # 10
+    [4.295692, -3.125136, 0.000, 1.0,1.5],  # 11
+    [4.627578, -5.242858, -2.392219, 2.0,1.8],  # 12
+    [1.054753, -5.769012, 2.688439, 1.0,1.3],  # 13 teb中为防止终点震荡单独附加一个限速点
+    [-0.2504603767395, -5.2709980011, 2.446521, 0.0,0]  # 14 终点
 ]
 
-PASS_THRES_RADIUS = 0.6
+PASS_THRES_RADIUS = 0.5
+
+
 def is_passed(now_pos, next_waypoint):
     dis_to_next_point = math.sqrt(
         (now_pos[0]-next_waypoint[0])**2+(now_pos[1]-next_waypoint[1])**2)
     # print('--dis:%.2f %.2f'%(dis_to_next_point[0],dis_to_next_point[1]))
-    if dis_to_next_point <= PASS_THRES_RADIUS :
+    if dis_to_next_point <= PASS_THRES_RADIUS:
         return True
     else:
         return False
@@ -84,9 +88,9 @@ if __name__ == '__main__':
             while not is_passed((speed_gover.x, speed_gover.y), (key_points[i][0], key_points[i][1])):
                 pass
             # 经过关键点后更新速度限制
-            params = {'max_vel_x': key_points[i][3]}
+            params = {'max_vel_x': key_points[i][3],'acc_lim_theta':key_points[i][4]}
             config = reconfig_client.update_configuration(params)
-            print("--passed point [%d]" % (i+1))  
+            print("--passed point [%d]" % (i+1))
         print('--结束')
 
         # for i in range(len(key_points)):
@@ -128,4 +132,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('操作已取消')
         exit(0)
-

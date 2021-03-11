@@ -4,29 +4,27 @@ TebLocalPlannerROS:
   # Trajectory
 
   teb_autosize: True
-  dt_ref: 0.2 # default 0.3 | 轨迹分辨率（单位秒）。小值导致精细分辨率，从而更好地逼近动力学模型，太高的值（> 0.6s）可能导致不再可行的轨迹
+  dt_ref: 0.8 # default 0.3 | 轨迹分辨率（单位秒）。小值导致精细分辨率，从而更好地逼近动力学模型，太高的值（> 0.6s）可能导致不再可行的轨迹
   dt_hysteresis: 0.1
   max_samples: 500
   global_plan_overwrite_orientation: True # default True
   allow_init_with_backwards_motion: False
   max_global_plan_lookahead_dist: 3.0 # 最大前瞻路径规划距离 | 减小该值可以使局部规划路径更接近全局路径，但会削弱避障能力
-  global_plan_viapoint_sep: -1 # 全局规划吸引子之间的距离
+  global_plan_viapoint_sep: -0.1 # 全局规划吸引子之间的距离,含义是在global_planner轨迹上间隔多远会有一个viapoint插入。设置为1就是1m一个viapoint
   global_plan_prune_distance: 1
   exact_arc_length: False
-  feasibility_check_no_poses: 5
+  feasibility_check_no_poses: 5 # default 5 | 判断生成的轨迹是否冲突,从轨迹起点开始逐个检查轨迹上的n个点，若n个点均不发生碰撞，则认为本次轨迹有效
   publish_feedback: False # 发布反馈消息
 
   # Robot
 
-  max_vel_x: 1.2
-  #  min_vel_x: 1.0
-  max_vel_x_backwards: 0.8 # 最大倒车速度
+  max_vel_x: 1.0
+  max_vel_x_backwards: 0.2 # 最大倒车速度
   max_vel_y: 0.0
   max_vel_theta: 10.0
-  #  min_vel_theta: 4.5
   acc_lim_x: 20.0 # 0 means not lim
   acc_lim_y: 0.00
-  acc_lim_theta: 1.5
+  acc_lim_theta: 1.3
   min_turning_radius: 0.15 # 0 for diff-drive robot (can turn on place!)
   footprint_model: # 投影模型
     type: "polygon" # types: "point", "circular", "line", "two_circles", "polygon"
@@ -50,9 +48,9 @@ TebLocalPlannerROS:
 
   min_obstacle_dist: 0.2 # default 0.25 | 与障碍物的最小期望距离 This value must also include our robot radius, since footprint_model is set to "point".
   inflation_dist: 0.4 # default 0.6 | 障碍物周围的缓冲区，进缓冲区会导致规划器减速,需要比min_obstacle_dist大
-  include_costmap_obstacles: True # 必须设置成true才能规避实时探测到的
+  include_costmap_obstacles: True # 必须设置成true才能规避实时探测到的障碍
   costmap_obstacles_behind_robot_dist: 0.5 # default 1.5 为了允许安全的转弯行为，该值应该是非零的。 较高的值包括更多优化障碍。考虑后方n米范围内的障碍物，设置的越大，考虑范围越广
-  obstacle_poses_affected: 15
+  obstacle_poses_affected: 30 # default 15 offical 30 | 因为障碍物而受到影响的poses数量（基于距离障碍物最近的pose，向两边扩展的点数）
 
   include_dynamic_obstacles: False # default true | 是否将动态障碍物预测为速度模型
   dynamic_obstacle_inflation_dist: 0.2 # default 0.6 | 动态障碍物的膨胀范围
@@ -73,17 +71,17 @@ TebLocalPlannerROS:
   weight_max_vel_theta: 1000 #default 1
   weight_acc_lim_x: 1 # defualt 1
   weight_acc_lim_theta: 1
-  weight_kinematics_nh: 1000
+  weight_kinematics_nh: 1000 # default 1000| 面向non-holonomic robots的运动学约束的权重
   weight_kinematics_forward_drive: 1000 # default 1 | 0~1000，倒车惩罚权重，越大越不容易倒车
-  weight_kinematics_turning_radius: 500 # default 1 | 0~1000 机器人最小转向半径的权重，越大则越容易达到最小转向半径的情况
+  weight_kinematics_turning_radius: 900 # default 1 | 0~1000 机器人最小转向半径的权重，越大则越容易达到最小转向半径的情况
   weight_optimaltime: 500 # default 1 | 最优时间权重。must be > 0 如果大了，那么车会在直道上快速加速，并且路径规划的也会切内道，这个参数越小，整个过程的车速会越稳定
   weight_shortest_path: 0
-  weight_obstacle: 10 # default 100 与障碍物保持最小距离的优化权重
+  weight_obstacle: 100 # default 100 避障在整个优化函数中的权重
   weight_inflation: 0.2
   weight_dynamic_obstacle: 1 # default 10
   weight_dynamic_obstacle_inflation: 0.2
-  weight_viapoint: 1
-  weight_adapt_factor: 2
+  weight_viapoint: 1 # default 1 | 提高和降低会明显改变输出轨迹的跟随力度
+  weight_adapt_factor: 2 # default 2 | 
 
   # Homotopy Class Planner
 
