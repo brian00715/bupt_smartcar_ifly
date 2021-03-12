@@ -6,11 +6,11 @@ from geometry_msgs.msg import Twist
 import sys
 import tty
 import threading
-import select,signal
+import select
+import signal
 import termios
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 from sensor_msgs.msg import Imu
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
@@ -24,7 +24,7 @@ dt = 0.1  # 时间间隔，单位：s
 L = 2.9  # 车辆轴距，单位：m
 
 
-def get_key(key_timeout,settings):
+def get_key(key_timeout, settings):
     tty.setraw(sys.stdin.fileno())
     rlist, _, _ = select.select([sys.stdin], [], [], key_timeout)
     if rlist:
@@ -95,17 +95,111 @@ class PathFollower:
         if self.vel_update_start_flag == 1:
             self.vel_update_start_flag = 0
             self.vel_update_start_time = rospy.get_time()
-        if (rospy.get_time()-self.vel_update_start_time) > 0.01:
+        if (rospy.get_time() - self.vel_update_start_time) > 0.01:
             self.int_start_flag = 1
             self.linear_vel_x = (self.x - self.last_x) / 0.01
             self.last_x = self.x
             # print("linear_vel_x:%5.2f linear_acc_x:%5.2f angular_vel_z:%5.2f yaw:%5.2f" % (
             #     self.linear_vel_x, self.linear_acc_x, self.angular_vel_z, self.yaw))
 
+    def pure_pursuit_control(self, cx, cy, pind):
+        ind = self.calc_target_index(cx, cy)
+        if pind >= ind:
+            ind = pind
+        if ind < len(cx):
+            tx = cx[ind]
+            ty = cy[ind]
+        else:
+            tx = cx[-1]
+            ty = cy[-1]
+            ind = len(cx) - 1
+        alpha = math.atan2(ty - self.y, tx - self.x) - self.yaw
+        if self.linear_vel_x < 0:  # back
+            alpha = math.pi - alpha
+        Lf = k * self.linear_vel_x + Lfc
+        delta = math.atan2(2.0 * L * math.sin(alpha) / Lf, 1.0)
+        return delta, ind
+
+    def calc_target_index(self, cx, cy):
+        # 搜索最临近的路点
+        dx = [self.x - icx for icx in cx]
+        dy = [self.y - icy for icy in cy]
+        d = [abs(math.sqrt(idx ** 2 + idy ** 2)) for (idx, idy) in zip(dx, dy)]
+        ind = d.index(min(d))
+        L = 0.0
+
+        Lf = k * self.linear_vel_x + Lfc
+
+        while Lf > L and (ind + 1) < len(cx):
+            dx = cx[ind + 1] - cx[ind]
+            dy = cx[ind + 1] - cx[ind]
+            L += math.sqrt(dx ** 2 + dy ** 2)
+            ind += 1
+        return ind
+
+    def get_goal_yaw(self, specified_point):
+        """>>>注意！gazebo的坐标系很奇葩<<<
+        以纯追踪方式获取目标偏航角
+        """
+        delta_x = specified_point[0] - self.x
+        delta_y = specified_point[1] - self.y
+        goal_yaw = math.atan(abs(delta_y / delta_x))
+        tf_yaw = 0
+        if delta_x > 0 and delta_y > 0:  # 1
+            tf_yaw = goal_yaw
+        elif delta_x < 0 and delta_y > 0:  # 2
+            tf_yaw = (math.radians(180) - goal_yaw)
+        elif delta_x < 0 and delta_y < 0:  # 3
+            tf_yaw = -(math.radians(180) - goal_yaw)
+        elif delta_x > 0 and delta_y < 0:  # 4
+            tf_yaw = -goal_yaw
+        return tf_yaw
+
+    def get_delta_yaw(self, now_yaw, goal_yaw):
+        """获取目标偏航角与当前偏航角的偏差量"""
+        delta_yaw = goal_yaw - now_yaw
+        # print("delta_yaw:%.2f" % (delta_yaw))
+        if delta_yaw > math.radians(180):
+            delta_yaw -= math.radians(360)
+        elif delta_yaw < -math.radians(180):
+            delta_yaw += math.radians(360)
+        # print("after:%.2f" % (delta_yaw))
+        return delta_yaw
+
+    def follow(self, goal):
+        dis_to_goal = math.sqrt(
+            (goal[0] - self.x) ** 2 + (goal[1] - self.y) ** 2)
+
+        # >>>global plan计算得到的偏航角<<<
+        goal_yaw = self.get_goal_yaw(goal)
+
+        # >>>local_plan获得的目标偏航角<<<
+        # goal_yaw = goal[2]
+
+        delta_yaw = self.get_delta_yaw(path_follower.yaw, goal_yaw)
+        goal_yaw = path_follower.yaw + delta_yaw  # 避免-3.14和3.14之间的优弧，取劣弧
+
+        # 偏航角控制
+        ang_ctrl_value = yaw_pid.get_output(path_follower.yaw, goal_yaw)
+        twist.linear.x = 1.5
+        twist.angular.z = ang_ctrl_value
+        vel_pub.publish(twist)
+        print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f " %
+              (goal_yaw, path_follower.yaw, ang_ctrl_value))
+
+        # 线速度控制
+        # vel_x_ctrl_value = vel_x_pid.get_output(
+        #     path_follower.linear_vel_x, vel_x)
+        # twist.angular.z = 0
+        # twist.linear.x = vel_x_ctrl_value
+        # vel_pub.publish(twist)
+        # print("ctrl_value:%5.2f now:%5.2f" %
+        #       (vel_x_ctrl_value, path_follower.linear_vel_x))
+
 
 def quit(signum, frame):
-    print ''
-    print 'stop fusion'
+    print('')
+    print('stop fusion')
     twist.angular.z = 0
     twist.linear.x = 0
     vel_pub.publish(twist)
@@ -116,7 +210,7 @@ if __name__ == '__main__':
     # settings = termios.tcgetattr(sys.stdin)
 
     rospy.init_node('pure_pursuit_controller')
-    vel_pub = rospy.Publisher('/vel_ctrl', Twist, queue_size=5)
+    vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
     path_follower = PathFollower()
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
@@ -128,15 +222,20 @@ if __name__ == '__main__':
         key_timeout = None
 
     twist = Twist()
-    ang_vel_pid = pid.PID_t(0.2, 0, 0,output_max = 999)  # 角速度控制pid
-    yaw_pid = pid.PID_t(4.0, 0, 0.2,output_max=20)  # 偏航角控制pid
-    vel_x_pid = pid.PID_t(0.8, 0.16, 0.1,int_max=10,output_max=6,sub_ctrl=True)  # 线速度x控制pid
+    # pid实例声明
+    ang_vel_pid = pid.PID_t(0.2, 0, 0, output_max=999)  # 角速度控制pid
+    yaw_pid = pid.PID_t(4.0, 0, 0.2, output_max=20)  # 偏航角控制pid
+    vel_x_pid = pid.PID_t(0.8, 0.16, 0.1, int_max=10,
+                          output_max=6, sub_ctrl=True)  # 线速度x控制pid
     start_time = rospy.get_time()
     try:
         vel_x = 1.0
+
         signal.signal(signal.SIGINT, quit)
         signal.signal(signal.SIGTERM, quit)
         change_flag = 1
+        forehead_index = 35 # 轨迹前瞻索引
+        print("--start following the local plan!")
         while True:
             # if (rospy.get_time()-start_time) > 5:
             #     start_time = rospy.get_time()
@@ -157,14 +256,18 @@ if __name__ == '__main__':
             #     print('结束')
             #     exit(0)
 
-            # 偏航角控制
-            ang_ctrl_value =  yaw_pid.get_output(path_follower.yaw,-3.14)
-            twist.angular.z = ang_ctrl_value
-            twist.linear.x = 0
-            vel_pub.publish(twist)
-            print ("ctrl_value:%5.2f now:%5.2f"%(ang_ctrl_value,path_follower.yaw))
+            # 偏航角控制调试
+            # goal_yaw = -3.1
+            # delta_yaw = path_follower.get_delta_yaw(
+            #     path_follower.yaw, goal_yaw)
+            # goal_yaw = path_follower.yaw+delta_yaw
+            # ang_ctrl_value = yaw_pid.get_output(path_follower.yaw, goal_yaw)
+            # twist.angular.z = ang_ctrl_value
+            # twist.linear.x = 0
+            # vel_pub.publish(twist)
+            # # print("ctrl_value:%5.2f now:%5.2f" % (ang_ctrl_value, path_follower.yaw))
 
-            # 线速度控制
+            # 线速度控制调试
             # vel_x_ctrl_value = vel_x_pid.get_output(
             #     path_follower.linear_vel_x, vel_x)
             # twist.angular.z = 0
@@ -173,12 +276,15 @@ if __name__ == '__main__':
             # print("ctrl_value:%5.2f now:%5.2f" %
             #       (vel_x_ctrl_value, path_follower.linear_vel_x))
 
-            rospy.sleep(0.1) # 调整控制频率
-
+            rospy.sleep(0.2)  # 调整控制频率
             poses = path_follower.global_path.poses
             if len(poses) != 0:
-                # print(poses[0].pose.position.x)
-                pass
+                [roll, pitch, yaw] = euler_from_quaternion(
+                    [poses[forehead_index].pose.orientation.x, poses[forehead_index].pose.orientation.y,
+                     poses[forehead_index].pose.orientation.z, poses[forehead_index].pose.orientation.w])
+                goal_pose = (poses[forehead_index].pose.position.x,
+                             poses[forehead_index].pose.position.y, yaw)
+                path_follower.follow(goal_pose)
 
     except KeyboardInterrupt:
         twist.angular.z = 0
