@@ -36,7 +36,7 @@ def get_key(key_timeout, settings):
 
 
 class PathFollower:
-    def __init__(self):
+    def __init__(self,forehead_index = 40):
         self.global_path = Path()
         self.x = 0
         self.last_x = 0
@@ -51,6 +51,7 @@ class PathFollower:
         self.int_start_time = 0  # 积分开始的时间点
         self.vel_update_start_time = 0
         self.vel_update_start_flag = 1
+        self.forehead_index = forehead_index # 轨迹前瞻索引
 
     def update_globle_path(self, global_path):
         self.global_path = global_path
@@ -166,7 +167,20 @@ class PathFollower:
         # print("after:%.2f" % (delta_yaw))
         return delta_yaw
 
-    def follow(self, goal):
+    def follow(self):
+        """顶层控制函数"""
+        poses = self.global_path.poses
+        if len(poses) != 0:
+            [roll, pitch, yaw] = euler_from_quaternion(
+                [poses[self.forehead_index].pose.orientation.x, poses[self.forehead_index].pose.orientation.y,
+                poses[self.forehead_index].pose.orientation.z, poses[self.forehead_index].pose.orientation.w])
+            goal_pose = (poses[self.forehead_index].pose.position.x,
+                        poses[self.forehead_index].pose.position.y, yaw)
+            self.control(goal_pose)
+
+
+    def control(self,goal):
+        """中层控制函数，发出实际控制指令"""
         dis_to_goal = math.sqrt(
             (goal[0] - self.x) ** 2 + (goal[1] - self.y) ** 2)
 
@@ -176,26 +190,26 @@ class PathFollower:
         # >>>local_plan获得的目标偏航角<<<
         # goal_yaw = goal[2]
 
-        delta_yaw = self.get_delta_yaw(path_follower.yaw, goal_yaw)
-        goal_yaw = path_follower.yaw + delta_yaw  # 避免-3.14和3.14之间的优弧，取劣弧
+        delta_yaw = self.get_delta_yaw(self.yaw, goal_yaw)
+        goal_yaw = self.yaw + delta_yaw  # 避免-3.14和3.14之间的优弧，取劣弧
 
         # 偏航角控制
-        ang_ctrl_value = yaw_pid.get_output(path_follower.yaw, goal_yaw)
+        ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)
         twist.linear.x = 1.5
         twist.angular.z = ang_ctrl_value
         vel_pub.publish(twist)
         print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f " %
-              (goal_yaw, path_follower.yaw, ang_ctrl_value))
+              (goal_yaw, self.yaw, ang_ctrl_value))
 
         # 线速度控制
         # vel_x_ctrl_value = vel_x_pid.get_output(
-        #     path_follower.linear_vel_x, vel_x)
+        #     self.linear_vel_x, vel_x)
         # twist.angular.z = 0
         # twist.linear.x = vel_x_ctrl_value
         # vel_pub.publish(twist)
         # print("ctrl_value:%5.2f now:%5.2f" %
-        #       (vel_x_ctrl_value, path_follower.linear_vel_x))
-
+        #       (vel_x_ctrl_value, self.linear_vel_x))
+        
 
 def quit(signum, frame):
     print('')
@@ -211,7 +225,7 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower()
+    path_follower = PathFollower(forehead_index = 36) # 轨迹跟踪器实例
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
@@ -234,7 +248,7 @@ if __name__ == '__main__':
         signal.signal(signal.SIGINT, quit)
         signal.signal(signal.SIGTERM, quit)
         change_flag = 1
-        forehead_index = 35 # 轨迹前瞻索引
+        
         print("--start following the local plan!")
         while True:
             # if (rospy.get_time()-start_time) > 5:
@@ -276,15 +290,9 @@ if __name__ == '__main__':
             # print("ctrl_value:%5.2f now:%5.2f" %
             #       (vel_x_ctrl_value, path_follower.linear_vel_x))
 
-            rospy.sleep(0.2)  # 调整控制频率
-            poses = path_follower.global_path.poses
-            if len(poses) != 0:
-                [roll, pitch, yaw] = euler_from_quaternion(
-                    [poses[forehead_index].pose.orientation.x, poses[forehead_index].pose.orientation.y,
-                     poses[forehead_index].pose.orientation.z, poses[forehead_index].pose.orientation.w])
-                goal_pose = (poses[forehead_index].pose.position.x,
-                             poses[forehead_index].pose.position.y, yaw)
-                path_follower.follow(goal_pose)
+            rospy.sleep(0.2)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
+            path_follower.follow()
+            
 
     except KeyboardInterrupt:
         twist.angular.z = 0
