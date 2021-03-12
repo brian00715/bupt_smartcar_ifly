@@ -32,7 +32,8 @@ def launch_pkg():
         'roscore',
         'sleep 2; roslaunch gazebo_pkg race.launch', 
         'sleep 5; roslaunch ifly_navigation ifly_navigation.launch',
-        'sleep 5; rosrun ifly_navigation nav_keypoints.py'
+        # 'sleep 5; rosrun ifly_navigation nav_keypoints.py'
+        'sleep 5; rosrun ifly_navigation pure_pursuit.py'
     ]
     open_terminal(nav_cmd)
 

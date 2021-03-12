@@ -23,6 +23,25 @@ Kp = 1.0  # 速度P控制器系数
 dt = 0.1  # 时间间隔，单位：s
 L = 2.9  # 车辆轴距，单位：m
 
+# 关键点数组
+# [x,y,yaw,max_vel_x,acc_lim,theta]
+key_points = [
+    [3.511233, -0.000090, 0.000, 1.5, 1.5],  # 1
+    [4.042557, -1.565172, 3.082496, 1.5, 1.5],  # 2
+    [2.936867, -1.032038, -3.14, 1.5, 1.5],  # 3
+    [1.995490, -1.044512, -2.983582, 1.5, 1.5],  # 4
+    # [4.646070, -1.056370, -2.934374,1.3],  # 5
+    # [2.218460, -2.536215, -1.542630,1.3],  # 6
+    # [0.661139, -3.180960, -1.812663,1.3],  # 7
+    # [4.646070, -1.056370, -2.934374,1.3],  # 8
+    [1.504895, -4.168083, 0.000, 1.5, 1.5],  # 9
+    [2.956114, -4.201780, 0.000, 1.5, 1.5],  # 10
+    [4.295692, -3.125136, 0.000, 1.5, 1.5],  # 11
+    [4.627578, -5.242858, -2.392219, 2.0, 2.0],  # 12
+    [1.054753, -5.769012, 2.688439, 1.0, 1.0],  # 13 teb中为防止终点震荡单独附加一个限速点
+    [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 14 终点
+]
+
 
 def get_key(key_timeout, settings):
     tty.setraw(sys.stdin.fileno())
@@ -35,8 +54,30 @@ def get_key(key_timeout, settings):
     return key
 
 
+PASS_THRES_RADIUS = 0.4
+
+
+def is_passed(now_pos, next_waypoint):
+    dis_to_next_point = math.sqrt(
+        (now_pos[0]-next_waypoint[0])**2+(now_pos[1]-next_waypoint[1])**2)
+    # print('--dis:%.2f %.2f'%(dis_to_next_point[0],dis_to_next_point[1]))
+    if dis_to_next_point <= PASS_THRES_RADIUS:
+        return True
+    else:
+        return False
+
+
+def quit(signum, frame):
+    print('')
+    print('stop fusion')
+    twist.angular.z = 0
+    twist.linear.x = 0
+    vel_pub.publish(twist)
+    sys.exit()
+
+
 class PathFollower:
-    def __init__(self,forehead_index = 40):
+    def __init__(self, forehead_index=40):
         self.global_path = Path()
         self.x = 0
         self.last_x = 0
@@ -51,7 +92,9 @@ class PathFollower:
         self.int_start_time = 0  # 积分开始的时间点
         self.vel_update_start_time = 0
         self.vel_update_start_flag = 1
-        self.forehead_index = forehead_index # 轨迹前瞻索引
+        self.forehead_index = forehead_index  # 轨迹前瞻索引
+        self.key_points_index = 0  # 关键点数组索引
+        self.running_speed = 2.0  # 当前期望速度（运行速度）
 
     def update_globle_path(self, global_path):
         self.global_path = global_path
@@ -104,6 +147,9 @@ class PathFollower:
             #     self.linear_vel_x, self.linear_acc_x, self.angular_vel_z, self.yaw))
 
     def pure_pursuit_control(self, cx, cy, pind):
+        """pure_pursuit追踪算法
+        >>>TODO:暂未调试成功<<<
+        """
         ind = self.calc_target_index(cx, cy)
         if pind >= ind:
             ind = pind
@@ -139,7 +185,7 @@ class PathFollower:
         return ind
 
     def get_goal_yaw(self, specified_point):
-        """>>>注意！gazebo的坐标系很奇葩<<<
+        """>>>注意！gazebo的坐标系很奇葩，需要变换<<<
         以纯追踪方式获取目标偏航角
         """
         delta_x = specified_point[0] - self.x
@@ -169,22 +215,40 @@ class PathFollower:
 
     def follow(self):
         """顶层控制函数"""
+        print("key_point_index:%d running_speed:%.2f" %
+              (self.key_points_index, self.running_speed))
+        if self.key_points_index < len(key_points)-1:
+            if is_passed((self.x, self.y),
+                         (key_points[self.key_points_index][0], key_points[self.key_points_index][1])):  # 是否经过关键点
+                # 更新期望速度
+                self.running_speed = key_points[self.key_points_index][3]
+                self.key_points_index += 1
+        else: # 终点的判断要更精确
+            PASS_THRES_RADIUS = 0.05
+            if is_passed((self.x, self.y),(-0.2504603767395, -5.2709980011)):
+                self.running_speed = 0
+
+        # 从全局规划路径中取得目标点，forehead_index为前瞻索引，global_path从小车当前位置开始规划，需要向后拓展一些
         poses = self.global_path.poses
         if len(poses) != 0:
-            [roll, pitch, yaw] = euler_from_quaternion(
-                [poses[self.forehead_index].pose.orientation.x, poses[self.forehead_index].pose.orientation.y,
-                poses[self.forehead_index].pose.orientation.z, poses[self.forehead_index].pose.orientation.w])
-            goal_pose = (poses[self.forehead_index].pose.position.x,
-                        poses[self.forehead_index].pose.position.y, yaw)
+            goal_pose = 0
+            # 到终点前全局路径长度不足，不限制前瞻索引会导致访问越界
+            if self.key_points_index < len(key_points)-1:
+                [roll, pitch, yaw] = euler_from_quaternion(
+                    [poses[self.forehead_index].pose.orientation.x, poses[self.forehead_index].pose.orientation.y,
+                     poses[self.forehead_index].pose.orientation.z, poses[self.forehead_index].pose.orientation.w])
+                goal_pose = (poses[self.forehead_index].pose.position.x,
+                             poses[self.forehead_index].pose.position.y, yaw)
+            else:
+                goal_pose = (-0.2504603767395, -5.2709980011, -3.14)
             self.control(goal_pose)
 
-
-    def control(self,goal):
-        """中层控制函数，发出实际控制指令"""
+    def control(self, goal):
+        """中层控制函数，发出实际控制速度指令"""
         dis_to_goal = math.sqrt(
             (goal[0] - self.x) ** 2 + (goal[1] - self.y) ** 2)
 
-        # >>>global plan计算得到的偏航角<<<
+        # >>>global plan计算得到的目标偏航角<<<
         goal_yaw = self.get_goal_yaw(goal)
 
         # >>>local_plan获得的目标偏航角<<<
@@ -195,29 +259,20 @@ class PathFollower:
 
         # 偏航角控制
         ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)
-        twist.linear.x = 1.5
-        twist.angular.z = ang_ctrl_value
-        vel_pub.publish(twist)
-        print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f " %
-              (goal_yaw, self.yaw, ang_ctrl_value))
+        # print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f " %
+        #       (goal_yaw, self.yaw, ang_ctrl_value))
 
         # 线速度控制
-        # vel_x_ctrl_value = vel_x_pid.get_output(
-        #     self.linear_vel_x, vel_x)
-        # twist.angular.z = 0
-        # twist.linear.x = vel_x_ctrl_value
-        # vel_pub.publish(twist)
+        vel_x_ctrl_value = vel_x_pid.get_output(
+            self.linear_vel_x, self.running_speed)
         # print("ctrl_value:%5.2f now:%5.2f" %
         #       (vel_x_ctrl_value, self.linear_vel_x))
-        
 
-def quit(signum, frame):
-    print('')
-    print('stop fusion')
-    twist.angular.z = 0
-    twist.linear.x = 0
-    vel_pub.publish(twist)
-    sys.exit()
+        # 发布速度指令
+        # twist.linear.x = vel_x_ctrl_value # 线速度pid仍需调试
+        twist.linear.x = self.running_speed
+        twist.angular.z = ang_ctrl_value
+        vel_pub.publish(twist)
 
 
 if __name__ == '__main__':
@@ -225,7 +280,7 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower(forehead_index = 36) # 轨迹跟踪器实例
+    path_follower = PathFollower(forehead_index=36)  # 轨迹跟踪器实例
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
@@ -248,8 +303,8 @@ if __name__ == '__main__':
         signal.signal(signal.SIGINT, quit)
         signal.signal(signal.SIGTERM, quit)
         change_flag = 1
-        
-        print("--start following the local plan!")
+
+        print("--All pre-works has done. Waiting for goal...")
         while True:
             # if (rospy.get_time()-start_time) > 5:
             #     start_time = rospy.get_time()
@@ -290,9 +345,8 @@ if __name__ == '__main__':
             # print("ctrl_value:%5.2f now:%5.2f" %
             #       (vel_x_ctrl_value, path_follower.linear_vel_x))
 
-            rospy.sleep(0.2)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
+            rospy.sleep(0.3)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
             path_follower.follow()
-            
 
     except KeyboardInterrupt:
         twist.angular.z = 0
