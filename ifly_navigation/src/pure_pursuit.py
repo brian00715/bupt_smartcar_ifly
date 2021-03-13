@@ -26,19 +26,19 @@ L = 2.9  # 车辆轴距，单位：m
 # 关键点数组
 # [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
-    [3.511233, -0.000090, 0.000, 1.5, 1.5],  # 1
-    [4.042557, -1.565172, 3.082496, 1.5, 1.5],  # 2
-    [2.936867, -1.032038, -3.14, 1.5, 1.5],  # 3
-    [1.995490, -1.044512, -2.983582, 1.5, 1.5],  # 4
+    [3.511233, -0.000090, 0.000, 1.8, 1.5],  # 1
+    [4.042557, -1.565172, 3.082496, 1.8, 1.5],  # 2
+    [2.936867, -1.032038, -3.14, 1.8, 1.5],  # 3
+    [1.995490, -1.044512, -2.983582, 1.8, 1.5],  # 4
     # [4.646070, -1.056370, -2.934374,1.3],  # 5
     # [2.218460, -2.536215, -1.542630,1.3],  # 6
     # [0.661139, -3.180960, -1.812663,1.3],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.504895, -4.168083, 0.000, 1.5, 1.5],  # 9
-    [2.956114, -4.201780, 0.000, 1.5, 1.5],  # 10
-    [4.295692, -3.125136, 0.000, 1.5, 1.5],  # 11
-    [4.627578, -5.242858, -2.392219, 2.0, 2.0],  # 12
-    [1.054753, -5.769012, 2.688439, 1.0, 1.0],  # 13 teb中为防止终点震荡单独附加一个限速点
+    [1.504895, -4.168083, 0.000, 1.8, 1.5],  # 9
+    [2.956114, -4.201780, 0.000, 1.8, 1.5],  # 10
+    [4.295692, -3.125136, 0.000, 1.3, 1.5],  # 11
+    [4.627578, -5.242858, -2.392219, 2.5, 2.0],  # 12
+    [0.560852,-5.673817, 2.761073, 1.0, 1.0],  # 13 
     [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 14 终点
 ]
 
@@ -94,7 +94,7 @@ class PathFollower:
         self.vel_update_start_flag = 1
         self.forehead_index = forehead_index  # 轨迹前瞻索引
         self.key_points_index = 0  # 关键点数组索引
-        self.running_speed = 2.0  # 当前期望速度（运行速度）
+        self.running_speed = 2.5  # 当前期望速度（运行速度）
 
     def update_globle_path(self, global_path):
         self.global_path = global_path
@@ -280,7 +280,7 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower(forehead_index=36)  # 轨迹跟踪器实例
+    path_follower = PathFollower(forehead_index=45)  # 轨迹跟踪器实例
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
@@ -293,7 +293,7 @@ if __name__ == '__main__':
     twist = Twist()
     # pid实例声明
     ang_vel_pid = pid.PID_t(0.2, 0, 0, output_max=999)  # 角速度控制pid
-    yaw_pid = pid.PID_t(4.0, 0, 0.2, output_max=20)  # 偏航角控制pid
+    yaw_pid = pid.PID_t(4.6, 0, 0.25, output_max=20)  # 偏航角控制pid
     vel_x_pid = pid.PID_t(0.8, 0.16, 0.1, int_max=10,
                           output_max=6, sub_ctrl=True)  # 线速度x控制pid
     start_time = rospy.get_time()
@@ -345,7 +345,7 @@ if __name__ == '__main__':
             # print("ctrl_value:%5.2f now:%5.2f" %
             #       (vel_x_ctrl_value, path_follower.linear_vel_x))
 
-            rospy.sleep(0.3)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
+            rospy.sleep(0.2)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
             path_follower.follow()
 
     except KeyboardInterrupt:
