@@ -15,6 +15,7 @@ from sensor_msgs.msg import Imu
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 import pid
+import dynamic_reconfigure.client
 
 # pure_pursuit参数
 k = 0.1  # 前视距离系数
@@ -96,7 +97,9 @@ class PathFollower:
         self.vel_update_start_flag = 1
         self.forehead_index = forehead_index  # 轨迹前瞻索引
         self.key_points_index = 0  # 关键点数组索引
-        self.running_speed = 2.0  # 当前期望速度（运行速度）
+        self.running_speed = 2.0  # 当前期望速度（运行速度)
+        self.move_base_vel = 0
+        self.reconfig_client = 0
 
     def update_globle_path(self, global_path):
         self.global_path = global_path
@@ -147,6 +150,9 @@ class PathFollower:
             self.last_x = self.x
             # print("linear_vel_x:%5.2f linear_acc_x:%5.2f angular_vel_z:%5.2f yaw:%5.2f" % (
             #     self.linear_vel_x, self.linear_acc_x, self.angular_vel_z, self.yaw))
+
+    def get_move_base_vel(self, move_base_vel):
+        self.move_base_vel = move_base_vel
 
     def pure_pursuit_control(self, cx, cy, pind):
         """pure_pursuit追踪算法
@@ -224,6 +230,9 @@ class PathFollower:
                          (key_points[self.key_points_index][0], key_points[self.key_points_index][1])):  # 是否经过关键点
                 # 更新期望速度
                 self.running_speed = key_points[self.key_points_index][3]
+                # 更新move_base的速度限制
+                params = {'max_vel_x': key_points[self.key_points_index][3]}
+                config = self.reconfig_client.update_configuration(params)
                 self.key_points_index += 1
         else:  # 终点的判断要更精确
             PASS_THRES_RADIUS = 0.05
@@ -263,16 +272,24 @@ class PathFollower:
         ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)
 
         # 线速度控制
+        # >>1<<使用pid计算，实测似乎没必要
         # vel_x_ctrl_value = vel_x_pid.get_output(
         #     self.linear_vel_x, self.running_speed -
         #     abs(ang_ctrl_value)*0.2)
-        vel_x_ctrl_value = self.running_speed - \
-            abs(ang_ctrl_value)*0.1  # 角速度太大时要限制线速度，否则车会飞
+        # >>2<<将线速度与角速度关联
+        # vel_x_ctrl_value = self.running_speed - \
+        #     abs(ang_ctrl_value)*0.1  # 角速度太大时要限制线速度，否则车会飞
+        # >>3<<使用teb_local_planner的速度 | 实测效果很一般
+        vel_x_ctrl_value = self.move_base_vel.linear.x
+        if self.move_base_vel.linear.x > abs(ang_ctrl_value)*0.1:
+            vel_x_ctrl_value = self.move_base_vel.linear.x - \
+                abs(ang_ctrl_value)*0.1
+
         # print("ctrl_value:%5.2f now:%5.2f" %
         #       (vel_x_ctrl_value, self.linear_vel_x))
 
         # 发布速度指令
-        twist.linear.x = vel_x_ctrl_value  # 线速度pid仍需调试
+        twist.linear.x = vel_x_ctrl_value 
         twist.angular.z = ang_ctrl_value
         vel_pub.publish(twist)
 
@@ -286,11 +303,23 @@ if __name__ == '__main__':
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
     path_follower = PathFollower(forehead_index=36)  # 轨迹跟踪器实例
-    path_sub = rospy.Subscriber(
-        "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
-    imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
+
+    path_sub = rospy.Subscriber("/move_base/GlobalPlanner/plan",
+                                Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
+
+    imu_sub = rospy.Subscriber(
+        "/imu", Imu, path_follower.update_posture)  # 订阅imu消息
+
     odom_sub = rospy.Subscriber(
-        "/odom", Odometry, path_follower.update_position)
+        "/odom", Odometry, path_follower.update_position)  # 订阅里程计消息
+
+    move_base_vel = rospy.Subscriber(
+        '/cmd_vel_move_base', Twist, path_follower.get_move_base_vel)  # 监听teb_local_planner的速度命令
+
+    reconfig_client = dynamic_reconfigure.client.Client(
+        '/move_base/TebLocalPlannerROS')
+    path_follower.reconfig_client = reconfig_client
+
     key_timeout = rospy.get_param("~key_timeout", 0.0)
     if key_timeout == 0.0:
         key_timeout = None

@@ -92,41 +92,6 @@ if __name__ == '__main__':
             print("--passed point [%d]" % (i+1))
         print('--结束')
 
-        # for i in range(len(key_points)):
-        #     # if i == 0:  # 第一段
-        #     #     params = {'max_vel_x': 1.5, 'max_vel_theta': 2.0}
-        #     #     config = recon_client.update_configuration(params)
-        #     # elif i == len(key_points)-2:
-        #     #     params = {'max_vel_x': 1.0, 'max_vel_theta': 2.0}
-        #     #     config = recon_client.update_configuration(params)
-        #     # elif i == len(key_points)-1:  # 目标点是最后一个
-        #     #     params = {'max_vel_x': 0.6, 'max_vel_theta': 2.0}
-        #     #     config = recon_client.update_configuration(params)
-        #     # else:  # 多弯段
-        #     #     params = {'max_vel_x': 0.8, 'max_vel_theta': 3.0}
-        #     #     config = recon_client.update_configuration(params)
-        #     move_goal = MoveBaseGoal()
-        #     move_goal.target_pose.header.frame_id = 'map'
-        #     move_goal.target_pose.pose.position.x = key_points[i][0]
-        #     move_goal.target_pose.pose.position.y = key_points[i][1]
-        #     [x, y, z, w] = tf.transformations.quaternion_from_euler(
-        #         0, 0, key_points[i][2])
-        #     move_goal.target_pose.pose.orientation.x = x
-        #     move_goal.target_pose.pose.orientation.y = y
-        #     move_goal.target_pose.pose.orientation.z = z
-        #     move_goal.target_pose.pose.orientation.w = w
-        #     move_base_client.send_goal(move_goal)
-        #     print('-- move_base_goal: x:%.2f y:%.2f yaw:%.2f' %
-        #           (key_points[i][0], key_points[i][1], key_points[i][2]))
-        #     # 没接近下一个目标点就死循环
-        #     if i < len(key_points)-1:
-        #         while not is_passed(get_model_state, (key_points[i][0], key_points[i][1])):
-        #             pass
-        #     else:  # 最后一个点采用move_base service判断到达
-        #         move_base_client.wait_for_result()
-        #         break
-        #     print('-- reached a goal.')
-
         # rospy.spin()
     except KeyboardInterrupt:
         print('操作已取消')
