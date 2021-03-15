@@ -64,8 +64,8 @@ class ROSNavNode(object):
         #     self.ori_y = text['orientation']['y']
         #     self.ori_z = text['orientation']['z']
         #     self.ori_w = text['orientation']['w']
-        self.pos_x = -0.2504603767395
-        self.pos_y = -5.2709980011
+        self.pos_x = -0.204603767395
+        self.pos_y = -5.1709980011
         self.pos_z = 0.0
         self.ori_x = 0.00
         self.ori_y = 0.00

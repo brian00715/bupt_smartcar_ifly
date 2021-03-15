@@ -30,10 +30,10 @@ def launch_pkg():
     show('即将打开导航文件')
     nav_cmd = [
         'roscore',
-        'sleep 2; roslaunch gazebo_pkg race.launch', 
-        'sleep 5; roslaunch ifly_navigation ifly_navigation.launch',
+        'sleep 1; roslaunch gazebo_pkg race.launch', 
+        'sleep 4; roslaunch ifly_navigation ifly_navigation.launch',
         # 'sleep 5; rosrun ifly_navigation nav_keypoints.py'
-        'sleep 5; rosrun ifly_navigation pure_pursuit.py'
+        'sleep 1; rosrun ifly_navigation pure_pursuit.py'
     ]
     open_terminal(nav_cmd)
 

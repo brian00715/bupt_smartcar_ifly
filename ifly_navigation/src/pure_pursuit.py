@@ -26,21 +26,22 @@ L = 2.9  # 车辆轴距，单位：m
 # 关键点数组
 # [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
-    [3.511233, -0.000090, 0.000, 0.9, 1.5],  # 1
-    [4.561621, -1.253595, 3.082496, 1.0, 1.5],  # 2
+    [2.402670, -0.000090, 0.000, 2.0, 1.5],  #
+    [3.511233, -0.000090, 0.000, 0.8, 1.5],  # 1
+    [4.561621, -1.253595, 3.082496, 1.2, 1.5],  # 2
     [2.936867, -1.032038, -3.14, 1.5, 1.5],  # 3
-    [1.995490, -1.044512, -2.983582, 1.0, 1.5],  # 4
+    [1.995490, -1.044512, -2.983582, 0.9, 1.5],  # 4
     # [4.646070, -1.056370, -2.934374,1.3],  # 5
     # [2.218460, -2.536215, -1.542630,1.3],  # 6
     # [0.661139, -3.180960, -1.812663,1.3],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.504895, -4.168083, 0.000, 1.2, 1.5],  # 9
-    [2.956114, -4.201780, 0.000, 0.8, 1.5],  # 10
-    [4.295692, -3.125136, 0.000, 1.1, 1.5],  # 11
-    [4.892510, -5.028745, -2.392219, 1.9, 2.0],  # 12
-    [2.902147, -5.983389, 0, 1.5, 2],  # 13
+    [1.504895, -4.168083, 0.000, 1.3, 1.5],  # 9
+    [2.956114, -4.201780, 0.000, 1.08, 1.5],  # 10
+    [4.295692, -3.125136, 0.000, 1.17, 1.5],  # 11
+    [5.194778, -4.593526, -2.392219, 1.9, 2.0],  # 12
+    [2.902147, -5.983389, 0, 1.7, 2],  # 13
     # [],
-    [1.026895, -5.841389, 2.962307, 0.5, 1.0],  #
+    [1.026895, -5.841389, 2.962307, 0.6, 1.0],  #
     [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 终点
 ]
 
@@ -96,7 +97,7 @@ class PathFollower:
         self.vel_update_start_flag = 1
         self.forehead_index = forehead_index  # 轨迹前瞻索引
         self.key_points_index = 0  # 关键点数组索引
-        self.running_speed = 2.0  # 当前期望速度（运行速度）
+        self.running_speed = 6.0  # 当前期望速度（运行速度）
 
     def update_globle_path(self, global_path):
         self.global_path = global_path
@@ -267,7 +268,7 @@ class PathFollower:
         #     self.linear_vel_x, self.running_speed -
         #     abs(ang_ctrl_value)*0.2)
         vel_x_ctrl_value = self.running_speed - \
-            abs(ang_ctrl_value)*0.1  # 角速度太大时要限制线速度，否则车会飞
+            abs(ang_ctrl_value)*0.1 # 角速度太大时要限制线速度，否则车会飞
         # print("ctrl_value:%5.2f now:%5.2f" %
         #       (vel_x_ctrl_value, self.linear_vel_x))
 
@@ -285,7 +286,7 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower(forehead_index=36)  # 轨迹跟踪器实例
+    path_follower = PathFollower(forehead_index=41)  # 轨迹跟踪器实例
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
@@ -356,7 +357,7 @@ if __name__ == '__main__':
 
             path_follower.follow()
 
-            rospy.sleep(0.2)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
+            rospy.sleep(0.1)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
 
     except KeyboardInterrupt:
         twist.angular.z = 0
