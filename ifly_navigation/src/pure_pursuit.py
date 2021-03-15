@@ -26,20 +26,22 @@ L = 2.9  # 车辆轴距，单位：m
 # 关键点数组
 # [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
-    [3.511233, -0.000090, 0.000, 1.8, 1.5],  # 1
-    [4.042557, -1.565172, 3.082496, 1.8, 1.5],  # 2
-    [2.936867, -1.032038, -3.14, 1.8, 1.5],  # 3
-    [1.995490, -1.044512, -2.983582, 1.8, 1.5],  # 4
+    [3.511233, -0.000090, 0.000, 0.9, 1.5],  # 1
+    [4.561621, -1.253595, 3.082496, 1.0, 1.5],  # 2
+    [2.936867, -1.032038, -3.14, 1.5, 1.5],  # 3
+    [1.995490, -1.044512, -2.983582, 1.0, 1.5],  # 4
     # [4.646070, -1.056370, -2.934374,1.3],  # 5
     # [2.218460, -2.536215, -1.542630,1.3],  # 6
     # [0.661139, -3.180960, -1.812663,1.3],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.504895, -4.168083, 0.000, 1.8, 1.5],  # 9
-    [2.956114, -4.201780, 0.000, 1.8, 1.5],  # 10
-    [4.295692, -3.125136, 0.000, 1.3, 1.5],  # 11
-    [4.627578, -5.242858, -2.392219, 2.5, 2.0],  # 12
-    [0.560852,-5.673817, 2.761073, 1.0, 1.0],  # 13 
-    [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 14 终点
+    [1.504895, -4.168083, 0.000, 1.2, 1.5],  # 9
+    [2.956114, -4.201780, 0.000, 0.8, 1.5],  # 10
+    [4.295692, -3.125136, 0.000, 1.1, 1.5],  # 11
+    [4.892510, -5.028745, -2.392219, 1.9, 2.0],  # 12
+    [2.902147, -5.983389, 0, 1.5, 2],  # 13
+    # [],
+    [1.026895, -5.841389, 2.962307, 0.5, 1.0],  #
+    [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 终点
 ]
 
 
@@ -94,7 +96,7 @@ class PathFollower:
         self.vel_update_start_flag = 1
         self.forehead_index = forehead_index  # 轨迹前瞻索引
         self.key_points_index = 0  # 关键点数组索引
-        self.running_speed = 2.5  # 当前期望速度（运行速度）
+        self.running_speed = 2.0  # 当前期望速度（运行速度）
 
     def update_globle_path(self, global_path):
         self.global_path = global_path
@@ -215,17 +217,17 @@ class PathFollower:
 
     def follow(self):
         """顶层控制函数"""
-        print("key_point_index:%d running_speed:%.2f" %
-              (self.key_points_index, self.running_speed))
+        # print("key_point_index:%d running_speed:%.2f" %
+        #       (self.key_points_index, self.running_speed))
         if self.key_points_index < len(key_points)-1:
             if is_passed((self.x, self.y),
                          (key_points[self.key_points_index][0], key_points[self.key_points_index][1])):  # 是否经过关键点
                 # 更新期望速度
                 self.running_speed = key_points[self.key_points_index][3]
                 self.key_points_index += 1
-        else: # 终点的判断要更精确
+        else:  # 终点的判断要更精确
             PASS_THRES_RADIUS = 0.05
-            if is_passed((self.x, self.y),(-0.2504603767395, -5.2709980011)):
+            if is_passed((self.x, self.y), (-0.2504603767395, -5.2709980011)):
                 self.running_speed = 0
 
         # 从全局规划路径中取得目标点，forehead_index为前瞻索引，global_path从小车当前位置开始规划，需要向后拓展一些
@@ -259,20 +261,23 @@ class PathFollower:
 
         # 偏航角控制
         ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)
-        # print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f " %
-        #       (goal_yaw, self.yaw, ang_ctrl_value))
 
         # 线速度控制
-        vel_x_ctrl_value = vel_x_pid.get_output(
-            self.linear_vel_x, self.running_speed)
+        # vel_x_ctrl_value = vel_x_pid.get_output(
+        #     self.linear_vel_x, self.running_speed -
+        #     abs(ang_ctrl_value)*0.2)
+        vel_x_ctrl_value = self.running_speed - \
+            abs(ang_ctrl_value)*0.1  # 角速度太大时要限制线速度，否则车会飞
         # print("ctrl_value:%5.2f now:%5.2f" %
         #       (vel_x_ctrl_value, self.linear_vel_x))
 
         # 发布速度指令
-        # twist.linear.x = vel_x_ctrl_value # 线速度pid仍需调试
-        twist.linear.x = self.running_speed
+        twist.linear.x = vel_x_ctrl_value  # 线速度pid仍需调试
         twist.angular.z = ang_ctrl_value
         vel_pub.publish(twist)
+
+        print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f vel_x:%5.2f" %
+              (goal_yaw, self.yaw, ang_ctrl_value, vel_x_ctrl_value))
 
 
 if __name__ == '__main__':
@@ -280,7 +285,7 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower(forehead_index=45)  # 轨迹跟踪器实例
+    path_follower = PathFollower(forehead_index=36)  # 轨迹跟踪器实例
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
@@ -293,12 +298,13 @@ if __name__ == '__main__':
     twist = Twist()
     # pid实例声明
     ang_vel_pid = pid.PID_t(0.2, 0, 0, output_max=999)  # 角速度控制pid
-    yaw_pid = pid.PID_t(4.6, 0, 0.25, output_max=20)  # 偏航角控制pid
-    vel_x_pid = pid.PID_t(0.8, 0.16, 0.1, int_max=10,
-                          output_max=6, sub_ctrl=True)  # 线速度x控制pid
+    yaw_pid = pid.PID_t(4.5, 0, 0.4, output_max=3.5)  # 偏航角控制pid
+    vel_x_pid = pid.PID_t(5, 0.15, 0.05, int_max=10,
+                          output_max=6, sub_ctrl=False)  # 线速度x控制pid
     start_time = rospy.get_time()
     try:
-        vel_x = 1.0
+        vel_x = 1.5
+        goal_yaw = -0.79
 
         signal.signal(signal.SIGINT, quit)
         signal.signal(signal.SIGTERM, quit)
@@ -306,14 +312,7 @@ if __name__ == '__main__':
 
         print("--All pre-works has done. Waiting for goal...")
         while True:
-            # if (rospy.get_time()-start_time) > 5:
-            #     start_time = rospy.get_time()
-            #     change_flag = -change_flag
-            #     if change_flag == 1:
-            #         vel_x = 1.5
-            #     elif change_flag == -1:
-            #         vel_x = 1.0
-
+            # 获取键盘输入
             # key = get_key(key_timeout,settings)
             # if key == 'w':
             #     vel_x += 0.5
@@ -325,8 +324,18 @@ if __name__ == '__main__':
             #     print('结束')
             #     exit(0)
 
+            # 定时改变数值，调试用
+            if (rospy.get_time()-start_time) > 4:
+                start_time = rospy.get_time()
+                change_flag = -change_flag
+                if change_flag == 1:
+                    vel_x = 1.5
+                    goal_yaw = 0.79
+                elif change_flag == -1:
+                    vel_x = -1.5
+                    goal_yaw = -0.79
+
             # 偏航角控制调试
-            # goal_yaw = -3.1
             # delta_yaw = path_follower.get_delta_yaw(
             #     path_follower.yaw, goal_yaw)
             # goal_yaw = path_follower.yaw+delta_yaw
@@ -334,7 +343,7 @@ if __name__ == '__main__':
             # twist.angular.z = ang_ctrl_value
             # twist.linear.x = 0
             # vel_pub.publish(twist)
-            # # print("ctrl_value:%5.2f now:%5.2f" % (ang_ctrl_value, path_follower.yaw))
+            # print("ctrl_value:%5.2f now:%5.2f goal:%5.2f" % (ang_ctrl_value, path_follower.yaw,goal_yaw))
 
             # 线速度控制调试
             # vel_x_ctrl_value = vel_x_pid.get_output(
@@ -345,8 +354,9 @@ if __name__ == '__main__':
             # print("ctrl_value:%5.2f now:%5.2f" %
             #       (vel_x_ctrl_value, path_follower.linear_vel_x))
 
-            rospy.sleep(0.2)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
             path_follower.follow()
+
+            rospy.sleep(0.2)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
 
     except KeyboardInterrupt:
         twist.angular.z = 0
