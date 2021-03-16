@@ -26,23 +26,23 @@ L = 2.9  # 车辆轴距，单位：m
 # 关键点数组
 # [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
-    [2.402670, -0.000090, 0.000, 1.85, 1.5],  # 0
-    [3.511233, -0.000090, 0.000, 0.8, 1.5],  # 1
-    [4.561621, -1.253595, 3.082496, 1.2, 1.5],  # 2
-    [2.936867, -1.032038, -3.14, 1.45, 1.5],  # 3
-    [1.995490, -1.044512, -2.983582, 0.9, 1.5],  # 4
-    # [4.646070, -1.056370, -2.934374,1.3],  # 5
-    # [2.218460, -2.536215, -1.542630,1.3],  # 6
+    [2.402670, -0.000090, 0.000, 1.8, 1.5],  # 0
+    [3.7    , -0.000090, 0.000, 0.8, 1.5],  # 1
+    [4.702972, -1.080354, 3.082496, 1.2, 1.5],  # 2
+    [2.936867, -1.032038, -3.14, 1.4, 1.5],  # 3
+    [1.995490, -1.044512, -2.983582, 0.8, 1.5],  # 4
+    [1.339966, -2.061234, -2.934374, 1.0, 1.5],  # 5
+    [1.741479, -2.556157, -1.542630, 0.85, 1.5],  # 6
     # [0.661139, -3.180960, -1.812663,1.3],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
     [1.504895, -4.168083, 0.000, 1.3, 1.5],  # 9
-    [2.956114, -4.201780, 0.000, 1.08, 1.5],  # 10
+    [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
     [4.295692, -3.125136, 0.000, 1.3, 1.5],  # 11
     [5.027173, -3.123793, 0.000, 1.1, 1.5],  # 12
     [5.194778, -4.593526, -2.392219, 2.0, 2.0],  # 13
     [2.902147, -5.983389, 0, 1.7, 2],  # 14
-    [1.717385, -5.971060, 0, 1.5, 2],  # 15
-    [0.836030, -5.705181, 2.962307, 0.7, 1.0],  # 16
+    [1.717385, -5.971060, 0, 1.6, 2],  # 15
+    [0.836030, -5.705181, 2.962307, 1.0, 1.0],  # 16
     [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 17 终点
 ]
 
@@ -99,6 +99,7 @@ class PathFollower:
         self.forehead_index = forehead_index  # 轨迹前瞻索引
         self.key_points_index = 0  # 关键点数组索引
         self.running_speed = 6.0  # 当前期望速度（运行速度）
+        self.reached_goal = False
 
     def update_globle_path(self, global_path):
         self.global_path = global_path
@@ -231,6 +232,7 @@ class PathFollower:
             PASS_THRES_RADIUS = 0.05
             if is_passed((self.x, self.y), (-0.2504603767395, -5.2709980011)):
                 self.running_speed = 0
+                self.reached_goal = True
 
         # 从全局规划路径中取得目标点，forehead_index为前瞻索引，global_path从小车当前位置开始规划，需要向后拓展一些
         poses = self.global_path.poses
@@ -287,7 +289,7 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower(forehead_index=41)  # 轨迹跟踪器实例
+    path_follower = PathFollower(forehead_index=42)  # 轨迹跟踪器实例
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
@@ -356,7 +358,13 @@ if __name__ == '__main__':
             # print("ctrl_value:%5.2f now:%5.2f" %
             #       (vel_x_ctrl_value, path_follower.linear_vel_x))
 
-            path_follower.follow()
+            if path_follower.reached_goal == False:
+                path_follower.follow()
+            else:
+                print("--successfully reached the goal!")
+                twist.angular.z = 0
+                twist.linear.x = 0
+                vel_pub.publish(twist)
 
             rospy.sleep(0.1)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
 

@@ -33,7 +33,7 @@ def launch_pkg():
         'sleep 1; roslaunch gazebo_pkg race.launch', 
         'sleep 4; roslaunch ifly_navigation ifly_navigation.launch',
         # 'sleep 5; rosrun ifly_navigation nav_keypoints.py'
-        'sleep 1; rosrun ifly_navigation pure_pursuit.py'
+        'rosrun ifly_navigation pure_pursuit.py'
     ]
     open_terminal(nav_cmd)
 
@@ -69,7 +69,7 @@ def main():
             save(node.get_topic())
             log_start = node.curr_time.secs
         # print(node.client.get_goal_status_text())
-        time.sleep(0.1)
+        time.sleep(0.01)
 
     end = node.curr_time.secs
     n_end = node.curr_time.nsecs

@@ -39,8 +39,8 @@ TebLocalPlannerROS:
 
   # GoalTolerance
 
-  xy_goal_tolerance: 0.2
-  yaw_goal_tolerance: 0.3
+  xy_goal_tolerance: 0.4
+  yaw_goal_tolerance: 1 # defualt 0.3
   free_goal_vel: False # default False | 设为False时，车辆到达终点时的目标速度为0，否则即全速冲线
   complete_global_plan: True
 
