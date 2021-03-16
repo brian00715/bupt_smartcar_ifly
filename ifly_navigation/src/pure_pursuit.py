@@ -27,24 +27,27 @@ L = 2.9  # 车辆轴距，单位：m
 # [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
     [2.402670, -0.000090, 0.000, 1.8, 1.5],  # 0
-    [3.7    , -0.000090, 0.000, 0.8, 1.5],  # 1
-    [4.702972, -1.080354, 3.082496, 1.2, 1.5],  # 2
-    [2.936867, -1.032038, -3.14, 1.4, 1.5],  # 3
+    [3.75, -0.000090, 0.000, 0.75, 1.5],  # 1
+    [4.702972, -1.080354, 3.082496, 1.25, 1.5],  # 2
+    [2.936867, -1.032038, -3.14, 1.43, 1.5],  # 3
     [1.995490, -1.044512, -2.983582, 0.8, 1.5],  # 4
     [1.339966, -2.061234, -2.934374, 1.0, 1.5],  # 5
     [1.741479, -2.556157, -1.542630, 0.85, 1.5],  # 6
     # [0.661139, -3.180960, -1.812663,1.3],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.504895, -4.168083, 0.000, 1.3, 1.5],  # 9
+    [1.504895, -4.168083, 0.000, 1.35, 1.5],  # 9
     [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
     [4.295692, -3.125136, 0.000, 1.3, 1.5],  # 11
     [5.027173, -3.123793, 0.000, 1.1, 1.5],  # 12
     [5.194778, -4.593526, -2.392219, 2.0, 2.0],  # 13
-    [2.902147, -5.983389, 0, 1.7, 2],  # 14
-    [1.717385, -5.971060, 0, 1.6, 2],  # 15
-    [0.836030, -5.705181, 2.962307, 1.0, 1.0],  # 16
+    [2.902147, -5.983389, 0, 1.85, 2],  # 14
+    [1.717385, -5.971060, 0, 1.55, 2],  # 15
+    [0.836030, -5.705181, 2.962307, 0.00, 1.0],  # 16
     [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 17 终点
 ]
+
+end_point = [-0.2504603767395, -5.2709980011]
+dyna_end_point = [0.953967,-5.794389] # 提前终点
 
 
 def get_key(key_timeout, settings):
@@ -228,18 +231,25 @@ class PathFollower:
                 # 更新期望速度
                 self.running_speed = key_points[self.key_points_index][3]
                 self.key_points_index += 1
+                print("index:",self.key_points_index)
         else:  # 终点的判断要更精确
-            PASS_THRES_RADIUS = 0.05
-            if is_passed((self.x, self.y), (-0.2504603767395, -5.2709980011)):
+            global PASS_THRES_RADIUS
+            PASS_THRES_RADIUS = 0.4
+            if is_passed((self.x, self.y),(dyna_end_point[0],dyna_end_point[1])):
                 self.running_speed = 0
+                twist = Twist()
+                twist.linear.x = 0.00
+                twist.angular.z = 0.00
+                vel_pub.publish(twist)  # 立即停止
                 self.reached_goal = True
+                return
 
         # 从全局规划路径中取得目标点，forehead_index为前瞻索引，global_path从小车当前位置开始规划，需要向后拓展一些
         poses = self.global_path.poses
         if len(poses) != 0:
             goal_pose = 0
             # 到终点前全局路径长度不足，不限制前瞻索引会导致访问越界
-            if self.key_points_index < len(key_points)-1:
+            if self.key_points_index < len(key_points)-2:
                 [roll, pitch, yaw] = euler_from_quaternion(
                     [poses[self.forehead_index].pose.orientation.x, poses[self.forehead_index].pose.orientation.y,
                      poses[self.forehead_index].pose.orientation.z, poses[self.forehead_index].pose.orientation.w])
@@ -280,8 +290,8 @@ class PathFollower:
         twist.angular.z = ang_ctrl_value
         vel_pub.publish(twist)
 
-        print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f vel_x:%5.2f" %
-              (goal_yaw, self.yaw, ang_ctrl_value, vel_x_ctrl_value))
+        # print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f vel_x:%5.2f" %
+        #       (goal_yaw, self.yaw, ang_ctrl_value, vel_x_ctrl_value))
 
 
 if __name__ == '__main__':
@@ -289,7 +299,7 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower(forehead_index=42)  # 轨迹跟踪器实例
+    path_follower = PathFollower(forehead_index=44)  # 轨迹跟踪器实例
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
@@ -365,6 +375,7 @@ if __name__ == '__main__':
                 twist.angular.z = 0
                 twist.linear.x = 0
                 vel_pub.publish(twist)
+                break
 
             rospy.sleep(0.1)  # 调整控制频率 >>>WARN!频率务必低于地图发布的频率， 否则控制器收到空地图会不作为<<<
 
