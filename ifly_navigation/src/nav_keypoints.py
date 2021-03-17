@@ -6,8 +6,6 @@ import dynamic_reconfigure.client
 import rosparam
 import rospy
 import tf
-from gazebo_msgs.srv import (GetModelState, GetModelStateRequest,
-                             GetWorldProperties)
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from nav_msgs.msg import Odometry
 
@@ -81,6 +79,7 @@ if __name__ == '__main__':
         reconfig_client = dynamic_reconfigure.client.Client(
             '/move_base/EBandPlannerROS')
 
+    print("--dynamic_reconfigure started! Waiting for move_base goal...")
     params = {'max_vel_x': 2.0, 'max_vel_theta': 8.0}
     config = reconfig_client.update_configuration(params)
     try:

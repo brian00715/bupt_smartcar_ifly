@@ -30,9 +30,10 @@ def launch_pkg():
     show('即将打开导航文件')
     nav_cmd = [
         'roscore',
-        'sleep 3; roslaunch gazebo_pkg race.launch', 
-        'sleep 3; roslaunch ifly_navigation ifly_navigation.launch',
-        'sleep 3; rosrun ifly_navigation nav_keypoints.py'
+        'sleep 1; roslaunch gazebo_pkg race.launch', 
+        'sleep 4; roslaunch ifly_navigation ifly_navigation.launch',
+        # 'sleep 5; rosrun ifly_navigation nav_keypoints.py'
+        'rosrun ifly_navigation pure_pursuit.py'
     ]
     open_terminal(nav_cmd)
 
@@ -52,27 +53,36 @@ def main():
     while not get_bool_ans('是否开始比赛计时？（务必等待所有软件启动完成后开始！）'):
         show('不着急，慢慢来～')
 
-    start = time.time()                                              # 开始比赛计时
+    # start = time.time()                                              # 开始比赛计时
     
     node = ROSNavNode()                                              # 启动节点
+    start = node.curr_time.secs
+    n_start = node.curr_time.nsecs
     show('开始发送目标')
     node.send_goal()
     
     period = 30                                                      # 记录周期 30s
-    log_start = time.time() - period                                 # 保证刚开始导航时记录一次 Topic list
+    log_start = node.curr_time.secs - period                                 # 保证刚开始导航时记录一次 Topic list
     while not node.get_state():
-        if int(time.time() - log_start) > period:                    # 每隔一个 period 记录一次 Topic list
+        if int(node.curr_time.secs - log_start) > period:                    # 每隔一个 period 记录一次 Topic list
             show(node.get_topic())
             save(node.get_topic())
-            log_start = time.time()
+            log_start = node.curr_time.secs
         # print(node.client.get_goal_status_text())
-        time.sleep(0.1)
+        time.sleep(0.01)
 
-    end = time.time()
+    end = node.curr_time.secs
+    n_end = node.curr_time.nsecs
     cost = end - start
+    if n_end>n_start:
+        n_cost = n_end - n_start
+    else:
+        n_cost = n_end + 1000000000 - n_start
 
-    show('成功到达目标！一共执行了 %s 秒' %cost)
-    save('%s 秒完成仿真' %cost)
+    n_cost = float(n_cost) / 1000000000.0
+
+    show('成功到达目标！一共执行了' + str(cost+n_cost) + ' 秒')
+    save(str(cost+n_cost) + ' 秒 完成仿真')
 
     while not get_bool_ans('你是否将屏幕移动到小车位置并截图？'):
         show('请按照流程进行！')

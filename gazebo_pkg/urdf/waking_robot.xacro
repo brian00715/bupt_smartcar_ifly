@@ -429,7 +429,7 @@
     <wheelSeparation>0.26</wheelSeparation>
     <wheelDiameter>0.12</wheelDiameter>
     <torque>2</torque>
-    <commandTopic>cmd_vel</commandTopic> <!--使用cmd_vel话题作为速度命令接收-->
+    <commandTopic>cmd_vel</commandTopic>
     <odometryTopic>odom</odometryTopic>
     <odometryFrame>odom</odometryFrame>
     <robotBaseFrame>dummy</robotBaseFrame>
