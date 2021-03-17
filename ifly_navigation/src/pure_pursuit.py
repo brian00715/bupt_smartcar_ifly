@@ -32,14 +32,14 @@ key_points = [
     [2.936867, -1.032038, -3.14, 1.43, 1.5],  # 3
     [1.995490, -1.044512, -2.983582, 0.8, 1.5],  # 4
     [1.339966, -2.061234, -2.934374, 1.0, 1.5],  # 5
-    [1.741479, -2.556157, -1.542630, 0.85, 1.5],  # 6
-    # [0.661139, -3.180960, -1.812663,1.3],  # 7
+    [1.741479, -2.556157, -1.542630, 1.0, 1.5],  # 6
+    [0.779905, -3.511548, -1.812663,1.0,1.5],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.504895, -4.168083, 0.000, 1.35, 1.5],  # 9
+    [1.504895, -4.168083, 0.000, 1.4, 1.5],  # 9
     [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
     [4.295692, -3.125136, 0.000, 1.3, 1.5],  # 11
     [5.027173, -3.123793, 0.000, 1.1, 1.5],  # 12
-    [5.194778, -4.593526, -2.392219, 2.0, 2.0],  # 13
+    [5.194778, -4.593526, -2.392219, 1.9, 2.0],  # 13
     [2.902147, -5.983389, 0, 1.85, 2],  # 14
     [1.717385, -5.971060, 0, 1.55, 2],  # 15
     [0.836030, -5.705181, 2.962307, 0.00, 1.0],  # 16
@@ -225,6 +225,7 @@ class PathFollower:
         """顶层控制函数"""
         # print("key_point_index:%d running_speed:%.2f" %
         #       (self.key_points_index, self.running_speed))
+        # print("len keypoints",len(key_points))
         if self.key_points_index < len(key_points)-1:
             if is_passed((self.x, self.y),
                          (key_points[self.key_points_index][0], key_points[self.key_points_index][1])):  # 是否经过关键点
@@ -233,6 +234,7 @@ class PathFollower:
                 self.key_points_index += 1
                 print("index:",self.key_points_index)
         else:  # 终点的判断要更精确
+            print("index end")
             global PASS_THRES_RADIUS
             PASS_THRES_RADIUS = 0.4
             if is_passed((self.x, self.y),(dyna_end_point[0],dyna_end_point[1])):
@@ -249,13 +251,19 @@ class PathFollower:
         if len(poses) != 0:
             goal_pose = 0
             # 到终点前全局路径长度不足，不限制前瞻索引会导致访问越界
-            if self.key_points_index < len(key_points)-2:
+            # and len(poses)>=self.forehead_index
+             
+
+            # if self.key_points_index < len(key_points)-2 :
+            if len(poses) > self.forehead_index + 65:
+                # print("len poses %d",len(poses))
                 [roll, pitch, yaw] = euler_from_quaternion(
                     [poses[self.forehead_index].pose.orientation.x, poses[self.forehead_index].pose.orientation.y,
                      poses[self.forehead_index].pose.orientation.z, poses[self.forehead_index].pose.orientation.w])
                 goal_pose = (poses[self.forehead_index].pose.position.x,
                              poses[self.forehead_index].pose.position.y, yaw)
             else:
+                print("final goal")
                 goal_pose = (-0.2504603767395, -5.2709980011, -3.14)
             self.control(goal_pose)
 
@@ -274,7 +282,8 @@ class PathFollower:
         goal_yaw = self.yaw + delta_yaw  # 避免-3.14和3.14之间的优弧，取劣弧
 
         # 偏航角控制
-        ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)
+        ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)#+delta_yaw*0.05
+        # print("yaw_pid %6.2f delta_yaw %6.2f"%(yaw_pid.get_output(self.yaw, goal_yaw),delta_yaw))
 
         # 线速度控制
         # vel_x_ctrl_value = vel_x_pid.get_output(
@@ -317,7 +326,7 @@ if __name__ == '__main__':
                           output_max=6, sub_ctrl=False)  # 线速度x控制pid
     start_time = rospy.get_time()
     try:
-        vel_x = 1.5
+        vel_x = 2.0
         goal_yaw = -0.79
 
         signal.signal(signal.SIGINT, quit)
