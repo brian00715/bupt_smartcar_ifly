@@ -15,6 +15,8 @@ from sensor_msgs.msg import Imu
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 import pid
+from sensor_msgs.msg import LaserScan
+import numpy
 
 # pure_pursuit参数
 k = 0.1  # 前视距离系数
@@ -32,22 +34,22 @@ key_points = [
     [2.936867, -1.032038, -3.14, 1.43, 1.5],  # 3
     [1.995490, -1.044512, -2.983582, 0.8, 1.5],  # 4
     [1.339966, -2.061234, -2.934374, 1.0, 1.5],  # 5
-    [1.741479, -2.556157, -1.542630, 1.0, 1.5],  # 6
-    [0.779905, -3.511548, -1.812663,1.0,1.5],  # 7
+    [1.741479, -2.556157, -1.542630, 0.85, 1.5],  # 6
+    # [0.661139, -3.180960, -1.812663,1.3],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.504895, -4.168083, 0.000, 1.4, 1.5],  # 9
+    [1.504895, -4.168083, 0.000, 1.35, 1.5],  # 9
     [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
     [4.295692, -3.125136, 0.000, 1.3, 1.5],  # 11
     [5.027173, -3.123793, 0.000, 1.1, 1.5],  # 12
-    [5.194778, -4.593526, -2.392219, 1.9, 2.0],  # 13
+    [5.194778, -4.593526, -2.392219, 2.0, 2.0],  # 13
     [2.902147, -5.983389, 0, 1.85, 2],  # 14
     [1.717385, -5.971060, 0, 1.55, 2],  # 15
     [0.836030, -5.705181, 2.962307, 0.00, 1.0],  # 16
     [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 17 终点
 ]
 
-end_point = [-0.2504603767395, -5.2709980011]
-dyna_end_point = [0.953967,-5.794389] # 提前终点
+end_point = [-0.2304603767395, -5.2709980011]
+dyna_end_point = [0.23,-5.27] # 提前终点
 
 
 def get_key(key_timeout, settings):
@@ -63,6 +65,31 @@ def get_key(key_timeout, settings):
 
 PASS_THRES_RADIUS = 0.4
 
+distance = [0,0,0,0,0,0,0,0]
+ahead_distance = 0
+ahead=np.zeros(180)
+def scan_callback(scan):
+    # rospy.loginfo('header: {0}'.format(scan))
+    # ahead_distance = scan.ranges[360]
+    print(len(scan.ranges))
+    distance[0] = scan.ranges[0]
+    distance[1] = scan.ranges[90]
+    distance[2] = scan.ranges[180]
+    distance[3] = scan.ranges[270]
+    distance[4] = scan.ranges[360]###
+    distance[5] = scan.ranges[450]
+    distance[6] = scan.ranges[540]
+    distance[7] = scan.ranges[630]
+    # print("distance: ",(distance))
+    # for i in range(len(msg.ranges)):
+    #     distance[i] = msg.ranges[i]
+    # tmp = distance[0:90:1]
+    # left = tmp[::-1]
+    # tmp = distance[270:360:1]
+    # right = tmp[::-1]
+    # tmp = np.concatenate((left,right),axis=0)
+    # for i in range(len(tmp)):
+    #     ahead[i] = tmp[i]
 
 def is_passed(now_pos, next_waypoint):
     dis_to_next_point = math.sqrt(
@@ -227,6 +254,7 @@ class PathFollower:
         #       (self.key_points_index, self.running_speed))
         # print("len keypoints",len(key_points))
         if self.key_points_index < len(key_points)-1:
+        # if len(poses) > self.forehead_index + 65:
             if is_passed((self.x, self.y),
                          (key_points[self.key_points_index][0], key_points[self.key_points_index][1])):  # 是否经过关键点
                 # 更新期望速度
@@ -280,17 +308,19 @@ class PathFollower:
 
         delta_yaw = self.get_delta_yaw(self.yaw, goal_yaw)
         goal_yaw = self.yaw + delta_yaw  # 避免-3.14和3.14之间的优弧，取劣弧
-
+        # print("ahead = %d"%(ahead_distance))
         # 偏航角控制
         ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)#+delta_yaw*0.05
         # print("yaw_pid %6.2f delta_yaw %6.2f"%(yaw_pid.get_output(self.yaw, goal_yaw),delta_yaw))
-
+        # print("distance: ",ahead_distance)
         # 线速度控制
         # vel_x_ctrl_value = vel_x_pid.get_output(
         #     self.linear_vel_x, self.running_speed -
         #     abs(ang_ctrl_value)*0.2)
-        vel_x_ctrl_value = self.running_speed - \
-            abs(ang_ctrl_value)*0.1  # 角速度太大时要限制线速度，否则车会飞
+        # vel_x_ctrl_value = self.running_speed - abs(ang_ctrl_value)*0.07  # 角速度太大时要限制线速度，否则车会飞
+
+
+        vel_x_ctrl_value = 0.27 + distance[4]*0.36- abs(ang_ctrl_value)*0.04 # 速度=基本速度+前方距离×比例-角速度×比例
         # print("ctrl_value:%5.2f now:%5.2f" %
         #       (vel_x_ctrl_value, self.linear_vel_x))
 
@@ -298,7 +328,7 @@ class PathFollower:
         twist.linear.x = vel_x_ctrl_value  # 线速度pid仍需调试
         twist.angular.z = ang_ctrl_value
         vel_pub.publish(twist)
-
+        # print("now yaw %.2f"%(self.yaw))
         # print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f vel_x:%5.2f" %
         #       (goal_yaw, self.yaw, ang_ctrl_value, vel_x_ctrl_value))
 
@@ -309,11 +339,10 @@ if __name__ == '__main__':
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
     path_follower = PathFollower(forehead_index=44)  # 轨迹跟踪器实例
-    path_sub = rospy.Subscriber(
-        "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
+    scan_sub = rospy.Subscriber('/scan', LaserScan, scan_callback)
+    path_sub = rospy.Subscriber("/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
-    odom_sub = rospy.Subscriber(
-        "/odom", Odometry, path_follower.update_position)
+    odom_sub = rospy.Subscriber("/odom", Odometry, path_follower.update_position)
     key_timeout = rospy.get_param("~key_timeout", 0.0)
     if key_timeout == 0.0:
         key_timeout = None
