@@ -24,7 +24,7 @@ Lfc = 2.0  # 前视距离
 Kp = 1.0  # 速度P控制器系数
 dt = 0.1  # 时间间隔，单位：s
 L = 2.9  # 车辆轴距，单位：m
-
+vel_base = 0.26
 # 关键点数组
 # [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
@@ -48,8 +48,8 @@ key_points = [
     [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 17 终点
 ]
 
-end_point = [-0.2304603767395, -5.2709980011]
-dyna_end_point = [0.23,-5.27] # 提前终点
+end_point = [-0.2, -5.1]
+dyna_end_point = [0.2,-5.2] # 提前终点
 
 
 def get_key(key_timeout, settings):
@@ -71,7 +71,7 @@ ahead=np.zeros(180)
 def scan_callback(scan):
     # rospy.loginfo('header: {0}'.format(scan))
     # ahead_distance = scan.ranges[360]
-    print(len(scan.ranges))
+    # print(len(scan.ranges))
     distance[0] = scan.ranges[0]
     distance[1] = scan.ranges[90]
     distance[2] = scan.ranges[180]
@@ -276,15 +276,20 @@ class PathFollower:
 
         # 从全局规划路径中取得目标点，forehead_index为前瞻索引，global_path从小车当前位置开始规划，需要向后拓展一些
         poses = self.global_path.poses
+        if len(poses) > 900 or len(poses) < 150:
+            vel_base = 0.6
+        else:
+            vel_base = 0.3
         if len(poses) != 0:
             goal_pose = 0
+        
             # 到终点前全局路径长度不足，不限制前瞻索引会导致访问越界
             # and len(poses)>=self.forehead_index
              
-
+            print("len poses %d",len(poses))
             # if self.key_points_index < len(key_points)-2 :
             if len(poses) > self.forehead_index + 65:
-                # print("len poses %d",len(poses))
+                
                 [roll, pitch, yaw] = euler_from_quaternion(
                     [poses[self.forehead_index].pose.orientation.x, poses[self.forehead_index].pose.orientation.y,
                      poses[self.forehead_index].pose.orientation.z, poses[self.forehead_index].pose.orientation.w])
@@ -319,8 +324,8 @@ class PathFollower:
         #     abs(ang_ctrl_value)*0.2)
         # vel_x_ctrl_value = self.running_speed - abs(ang_ctrl_value)*0.07  # 角速度太大时要限制线速度，否则车会飞
 
-
-        vel_x_ctrl_value = 0.27 + distance[4]*0.36- abs(ang_ctrl_value)*0.04 # 速度=基本速度+前方距离×比例-角速度×比例
+       
+        vel_x_ctrl_value = vel_base+ distance[4]*0.35- abs(ang_ctrl_value)*0.04 # 速度=基本速度+前方距离×比例-角速度×比例
         # print("ctrl_value:%5.2f now:%5.2f" %
         #       (vel_x_ctrl_value, self.linear_vel_x))
 
