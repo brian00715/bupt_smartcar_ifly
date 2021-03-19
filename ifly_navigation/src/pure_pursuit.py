@@ -26,25 +26,25 @@ L = 2.9  # 车辆轴距，单位：m
 # 关键点数组
 # [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
-    [1.000, -0.000090, 0.000, 2.0, 1.5],  # 0
-    [2.000, -0.000090, 0.000, 1.75, 1.5],  # 0.5
-    [3.7, -0.000090, 0.000, 0.7, 1.5],  # 1
-    [4.702972, -1.080354, 3.082496, 1.35, 1.5],  # 2
-    [2.936867, -1.032038, -3.14, 1.45, 1.5],  # 3
-    [1.995490, -1.044512, -2.983582, 0.8, 1.5],  # 4
-    [1.339966, -2.061234, -2.934374, 1.0, 1.5],  # 5
-    [1.741479, -2.556157, -1.542630, 1.0, 1.5],  # 6
-    [0.779905, -3.511548, -1.812663,1.0,1.5],  # 7
+    [1.000, -0.000090, 0.000, 2.2, 1.5,60],  # 0
+    [2.000, -0.000090, 0.000, 1.8, 1.50,55],  # 0.5
+    [3.7, -0.000090, 0.000, 0.75, 1.5,53],  # 1
+    [4.702972, -1.080354, 3.082496, 1.4, 1.5,55],  # 2
+    [2.936867, -1.032038, -3.14, 1.45, 1.5,55],  # 3
+    [1.995490, -1.044512, -2.983582, 0.8, 1.5,52],  # 4
+    [1.339966, -2.061234, -2.934374, 1.0, 1.5,43],  # 5
+    [1.741479, -2.556157, -1.542630, 1.0, 1.5,43],  # 6
+    [0.779905, -3.511548, -1.812663,1.0,1.5,40],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.665421, -4.329203, 0.063971, 1.4, 1.5],  # 9
+    [1.665421, -4.329203, 0.063971, 1.4, 1.5,45],  # 9
     # [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
-    [4.295692, -3.125136, 0.000, 1.25, 1.5],  # 11
-    [5.027173, -3.123793, 0.000, 1.1, 1.5],  # 12
-    [5.194778, -4.593526, -2.392219, 2.0, 2.0],  # 13
-    [2.902147, -5.983389, 0, 1.9, 2],  # 14
-    [1.717385, -5.971060, 0, 1.6, 2],  # 15
-    [0.836030, -5.705181, 2.962307, 0.00, 1.0],  # 16
-    [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 17 终点
+    [4.295692, -3.125136, 0.000, 1.25, 1.5,45],  # 11
+    [5.027173, -3.123793, 0.000, 1.1, 1.5,40],  # 12
+    [5.194778, -4.593526, -2.392219, 2.0, 2.0,50],  # 13
+    [2.902147, -5.983389, 0, 1.9, 2,50],  # 14
+    [1.717385, -5.971060, 0, 1.6, 2,50],  # 15
+    [0.836030, -5.705181, 2.962307, 0.00, 1.0,40],  # 16
+    [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0,40]  # 17 终点
 ]
 
 end_point = [-0.2504603767395, -5.2709980011]
@@ -227,6 +227,8 @@ class PathFollower:
         # print("key_point_index:%d running_speed:%.2f" %
         #       (self.key_points_index, self.running_speed))
         # print("len keypoints",len(key_points))
+        self.forehead_index = key_points[self.key_points_index][5]
+        print("forehead_index %d"%(self.forehead_index))
         if self.key_points_index < len(key_points)-1:
             if is_passed((self.x, self.y),
                          (key_points[self.key_points_index][0], key_points[self.key_points_index][1])):  # 是否经过关键点
@@ -287,13 +289,12 @@ class PathFollower:
         # print("yaw_pid %6.2f delta_yaw %6.2f"%(yaw_pid.get_output(self.yaw, goal_yaw),delta_yaw))
 
         # 线速度控制
-        # vel_x_ctrl_value = vel_x_pid.get_output(
-        #     self.linear_vel_x, self.running_speed -
-        #     abs(ang_ctrl_value)*0.2)
-        vel_x_ctrl_value = self.running_speed -  abs(ang_ctrl_value)*0.1  # 角速度太大时要限制线速度，否则车会飞
-        # print("ctrl_value:%5.2f now:%5.2f" %
-        #       (vel_x_ctrl_value, self.linear_vel_x))
-
+        # vel_x_ctrl_value = vel_x_pid.get_output(self.linear_vel_x, self.running_speed -abs(ang_ctrl_value)*0.2)
+        vel_turn = 1.53/ang_ctrl_value
+        # print("vel_turn = %.2f"%(vel_turn))
+        vel_x_ctrl_value = self.running_speed -  abs(ang_ctrl_value)*0.09  # 角速度太大时要限制线速度，否则车会飞
+        # print("ctrl_value:%5.2f now:%5.2f" %(vel_x_ctrl_value, self.linear_vel_x))
+        # print("alpha = %.2f"%(ang_ctrl_value*vel_x_ctrl_value))
         # 发布速度指令
         twist.linear.x = vel_x_ctrl_value  # 线速度pid仍需调试
         twist.angular.z = ang_ctrl_value
