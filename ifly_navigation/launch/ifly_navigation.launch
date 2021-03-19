@@ -4,19 +4,17 @@
   <arg name="map_file" default="$(find ifly_navigation)/maps/map.yaml"/>
   <arg name="open_rviz" default="true"/>
   <arg name="move_forward_only" default="false"/>
-  <arg name="multi_robot_name" default="false"/>
   <arg name="local_planner_method" default="dwa" doc="teb"/>
 
   <!-- 加载模型 -->
   <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find gazebo_pkg)/urdf/waking_robot.xacro'" />
-  <!-- <param name="robot_description" command="$(arg urdf_file)" /> -->
 
   <!-- Map server -->
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
 
   <!-- AMCL -->
-  <include file="$(find ifly_navigation)/launch/amcl.launch"/>
-  <!-- <include file="$(find amcl)/examples/amcl_diff.launch" /> -->
+  <!-- <include file="$(find ifly_navigation)/launch/amcl.launch"/> -->
+  <include file="$(find ifly_navigation)/launch/amcl_official.launch" />
 
   <!-- move_base -->
   <include file="$(find ifly_navigation)/launch/move_base.launch">

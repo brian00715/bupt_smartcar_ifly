@@ -24,32 +24,32 @@ Lfc = 2.0  # 前视距离
 Kp = 1.0  # 速度P控制器系数
 dt = 0.1  # 时间间隔，单位：s
 L = 2.9  # 车辆轴距，单位：m
-vel_base = 0.26
+vel_base = 0.25
 # 关键点数组
-# [x,y,yaw,max_vel_x,acc_lim,theta]
+# [x,y,yaw,max_vel_x,ang_vel_max,theta]
 key_points = [
-    [2.402670, -0.000090, 0.000, 1.8, 1.5],  # 0
-    [3.75, -0.000090, 0.000, 0.75, 1.5],  # 1
-    [4.702972, -1.080354, 3.082496, 1.25, 1.5],  # 2
-    [2.936867, -1.032038, -3.14, 1.43, 1.5],  # 3
-    [1.995490, -1.044512, -2.983582, 0.8, 1.5],  # 4
-    [1.339966, -2.061234, -2.934374, 1.0, 1.5],  # 5
-    [1.741479, -2.556157, -1.542630, 0.85, 1.5],  # 6
+    [2.402670,      -0.000090,      0.000,          1.7,         1.5],  # 0
+    [3.25,                -0.000090,      0.000,          0.5,        1.5],  # 1
+    [4.702972,      -1.080354,      3.0824,        1.1,     1.5],  # 2
+    [2.936867,      -1.032038,      -3.14,           1.43,      1.5],  # 3
+    [1.995490,      -1.044512,      -2.9835,      0.8,         1.5],  # 4
+    [1.339966,      -2.061234,       -2.934,        1.0,        1.5],  # 5
+    [1.741479,      -2.556157,      -1.542,         0.85,      1.5],  # 6
     # [0.661139, -3.180960, -1.812663,1.3],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.504895, -4.168083, 0.000, 1.35, 1.5],  # 9
-    [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
-    [4.295692, -3.125136, 0.000, 1.3, 1.5],  # 11
-    [5.027173, -3.123793, 0.000, 1.1, 1.5],  # 12
-    [5.194778, -4.593526, -2.392219, 2.0, 2.0],  # 13
-    [2.902147, -5.983389, 0, 1.85, 2],  # 14
-    [1.717385, -5.971060, 0, 1.55, 2],  # 15
-    [0.836030, -5.705181, 2.962307, 0.00, 1.0],  # 16
-    [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 17 终点
+    [1.504895,       -4.168083,      0.000,         1.35,       1.5],  # 9
+    [2.956114,      -4.201780,       0.000,         1.1,        1.5],  # 10
+    [4.295692,       -3.125136,      0.000,         1.3,        1.5],  # 11
+    [5.027173,      -3.123793,       0.000,         1.1,        1.5],  # 12
+    [5.194778,      -4.593526,       -2.392,        2.0,        2.0],  # 13
+    [2.902147,       -5.983389,      0,                  1.85,      2],  # 14
+    [1.717385,      -5.971060,       0,                  1.55,      2],  # 15
+    [0.836030,      -5.705181,       2.962,         0.00,       1.0],  # 16
+    [-0.25046,      -5.270998,        2.446,         0.0,           0]  # 17 终点
 ]
 
 end_point = [-0.2, -5.1]
-dyna_end_point = [0.2,-5.2] # 提前终点
+dyna_end_point = [0.185,-5.05] # 提前终点
 
 
 def get_key(key_timeout, settings):
@@ -277,7 +277,7 @@ class PathFollower:
         # 从全局规划路径中取得目标点，forehead_index为前瞻索引，global_path从小车当前位置开始规划，需要向后拓展一些
         poses = self.global_path.poses
         if len(poses) > 900 or len(poses) < 150:
-            vel_base = 0.6
+            vel_base = 0.45
         else:
             vel_base = 0.3
         if len(poses) != 0:
@@ -286,7 +286,7 @@ class PathFollower:
             # 到终点前全局路径长度不足，不限制前瞻索引会导致访问越界
             # and len(poses)>=self.forehead_index
              
-            print("len poses %d",len(poses))
+            # print("len poses %d",len(poses))
             # if self.key_points_index < len(key_points)-2 :
             if len(poses) > self.forehead_index + 65:
                 
@@ -313,21 +313,21 @@ class PathFollower:
 
         delta_yaw = self.get_delta_yaw(self.yaw, goal_yaw)
         goal_yaw = self.yaw + delta_yaw  # 避免-3.14和3.14之间的优弧，取劣弧
-        # print("ahead = %d"%(ahead_distance))
+       
+
         # 偏航角控制
         ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)#+delta_yaw*0.05
+        print("angvel %.2f"%(ang_ctrl_value))
         # print("yaw_pid %6.2f delta_yaw %6.2f"%(yaw_pid.get_output(self.yaw, goal_yaw),delta_yaw))
-        # print("distance: ",ahead_distance)
+        # print("ahead = %d"%(ahead_distance))
         # 线速度控制
-        # vel_x_ctrl_value = vel_x_pid.get_output(
-        #     self.linear_vel_x, self.running_speed -
-        #     abs(ang_ctrl_value)*0.2)
-        # vel_x_ctrl_value = self.running_speed - abs(ang_ctrl_value)*0.07  # 角速度太大时要限制线速度，否则车会飞
-
-       
-        vel_x_ctrl_value = vel_base+ distance[4]*0.35- abs(ang_ctrl_value)*0.04 # 速度=基本速度+前方距离×比例-角速度×比例
-        # print("ctrl_value:%5.2f now:%5.2f" %
-        #       (vel_x_ctrl_value, self.linear_vel_x))
+        # vel_x_ctrl_value = vel_x_pid.get_output(self.linear_vel_x, self.running_speed -abs(ang_ctrl_value)*0.2)
+        vel_x_ctrl_value = self.running_speed - abs(ang_ctrl_value)*0.07  # 角速度太大时要限制线速度，否则车会飞
+        # vel_power = 1.2*(0.7*math.log10(distance[4]+1)+0.15)
+        # vel_power = distance[4]*0.35
+        # print("vel_power = %.2f"%(vel_power))
+        # vel_x_ctrl_value = 0.65*self.running_speed+ vel_power- abs(ang_ctrl_value)*0.1 # 速度=基本速度+前方距离×比例-角速度×比例
+        # print("ctrl_value:%5.2f now:%5.2f" %(vel_x_ctrl_value, self.linear_vel_x))
 
         # 发布速度指令
         twist.linear.x = vel_x_ctrl_value  # 线速度pid仍需调试
@@ -361,7 +361,7 @@ if __name__ == '__main__':
     start_time = rospy.get_time()
     try:
         vel_x = 2.0
-        goal_yaw = -0.79
+        goal_yaw = 0.00
 
         signal.signal(signal.SIGINT, quit)
         signal.signal(signal.SIGTERM, quit)
@@ -382,15 +382,15 @@ if __name__ == '__main__':
             #     exit(0)
 
             # 定时改变数值，调试用
-            if (rospy.get_time()-start_time) > 4:
-                start_time = rospy.get_time()
-                change_flag = -change_flag
-                if change_flag == 1:
-                    vel_x = 1.5
-                    goal_yaw = 0.79
-                elif change_flag == -1:
-                    vel_x = -1.5
-                    goal_yaw = -0.79
+            # if (rospy.get_time()-start_time) > 4:
+            #     start_time = rospy.get_time()
+            #     change_flag = -change_flag
+            #     if change_flag == 1:
+            #         vel_x = 1.5
+            #         goal_yaw = 0.79
+            #     elif change_flag == -1:
+            #         vel_x = -1.5
+            #         goal_yaw = -0.79
 
             # 偏航角控制调试
             # delta_yaw = path_follower.get_delta_yaw(
