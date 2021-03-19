@@ -35,9 +35,9 @@ key_points = [
     [1.741479, -2.556157, -1.542630, 1.0, 1.5],  # 6
     [0.779905, -3.511548, -1.812663,1.0,1.5],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.504895, -4.168083, 0.000, 1.4, 1.5],  # 9
-    [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
-    [4.295692, -3.125136, 0.000, 1.3, 1.5],  # 11
+    [1.665421, -4.329203, 0.063971, 1.4, 1.5],  # 9
+    # [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
+    [4.295692, -3.125136, 0.000, 1.25, 1.5],  # 11
     [5.027173, -3.123793, 0.000, 1.1, 1.5],  # 12
     [5.194778, -4.593526, -2.392219, 1.9, 2.0],  # 13
     [2.902147, -5.983389, 0, 1.85, 2],  # 14
@@ -289,8 +289,7 @@ class PathFollower:
         # vel_x_ctrl_value = vel_x_pid.get_output(
         #     self.linear_vel_x, self.running_speed -
         #     abs(ang_ctrl_value)*0.2)
-        vel_x_ctrl_value = self.running_speed - \
-            abs(ang_ctrl_value)*0.1  # 角速度太大时要限制线速度，否则车会飞
+        vel_x_ctrl_value = self.running_speed -  abs(ang_ctrl_value)*0.1  # 角速度太大时要限制线速度，否则车会飞
         # print("ctrl_value:%5.2f now:%5.2f" %
         #       (vel_x_ctrl_value, self.linear_vel_x))
 
@@ -321,7 +320,7 @@ if __name__ == '__main__':
     twist = Twist()
     # pid实例声明
     ang_vel_pid = pid.PID_t(0.2, 0, 0, output_max=999)  # 角速度控制pid
-    yaw_pid = pid.PID_t(4.5, 0, 0.4, output_max=3.5)  # 偏航角控制pid
+    yaw_pid = pid.PID_t(4.5, 0, 0.4, output_max=3.6)  # 偏航角控制pid
     vel_x_pid = pid.PID_t(5, 0.15, 0.05, int_max=10,
                           output_max=6, sub_ctrl=False)  # 线速度x控制pid
     start_time = rospy.get_time()
@@ -348,15 +347,15 @@ if __name__ == '__main__':
             #     exit(0)
 
             # 定时改变数值，调试用
-            if (rospy.get_time()-start_time) > 4:
-                start_time = rospy.get_time()
-                change_flag = -change_flag
-                if change_flag == 1:
-                    vel_x = 1.5
-                    goal_yaw = 0.79
-                elif change_flag == -1:
-                    vel_x = -1.5
-                    goal_yaw = -0.79
+            # if (rospy.get_time()-start_time) > 4:
+            #     start_time = rospy.get_time()
+            #     change_flag = -change_flag
+            #     if change_flag == 1:
+            #         vel_x = 1.5
+            #         goal_yaw = 0.79
+            #     elif change_flag == -1:
+            #         vel_x = -1.5
+            #         goal_yaw = -0.79
 
             # 偏航角控制调试
             # delta_yaw = path_follower.get_delta_yaw(
