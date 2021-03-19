@@ -28,7 +28,7 @@ L = 2.9  # 车辆轴距，单位：m
 key_points = [
     [1.000, -0.000090, 0.000, 2.0, 1.5],  # 0
     [2.000, -0.000090, 0.000, 1.75, 1.5],  # 0.5
-    [3.7, -0.000090, 0.000, 0.7, 1.5],  # 1
+    [3.7, -0.000090, 0.000, 0.75, 1.5],  # 1
     [4.702972, -1.080354, 3.082496, 1.35, 1.5],  # 2
     [2.936867, -1.032038, -3.14, 1.45, 1.5],  # 3
     [1.995490, -1.044512, -2.983582, 0.8, 1.5],  # 4
@@ -308,7 +308,7 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower(forehead_index=55)  # 轨迹跟踪器实例
+    path_follower = PathFollower(forehead_index=54)  # 轨迹跟踪器实例
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
