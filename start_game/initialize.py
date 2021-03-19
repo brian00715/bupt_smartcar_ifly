@@ -10,8 +10,8 @@ import platform
 import tarfile
 from interactive import show, get_bool_ans, get_str_ans, save
 
-model_path = '~/ifly_race_ws/src/gazebo_pkg/urdf'
-workspace_path = 'source ~/ifly_race_ws/devel/setup.bash'
+model_path = '~/project/ifly_ws/src/gazebo_pkg/urdf'
+workspace_path = 'source ~/project/ifly_ws/devel/setup.bash'
 
 
 def install_pkg():
