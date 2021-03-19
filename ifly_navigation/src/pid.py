@@ -8,23 +8,23 @@ import rospy
 
 
 class PID_t:
-    def __init__(self, kp, ki, kd, int_duty=0.01, int_max=100, output_max=10,sub_ctrl = False):
+    def __init__(self, kp, ki, kd, int_duty=0.01, int_max=100, output_max=10, sub_ctrl=False):
         self.kp = kp
         self.ki = ki
         self.kd = kd
-        self.now_value = 0
-        self.now_err = 0
-        self.last_err = 0
-        self.last_last_err = 0
-        self.delta_value = 0
+        self.now_value = 0  # 实际值
+        self.now_err = 0  # 当前偏差
+        self.last_err = 0  # 上一轮偏差
+        self.last_last_err = 0  # 上上轮偏差
+        self.delta_value = 0  # 增量式式PID的控制增量
         self.int_count = 0  # 积分量
-        self.expect_value = 0
+        self.expect_value = 0  # 期望值
         self.int_duty = int_duty  # 积分周期/s
         self.curr_time = rospy.get_time()
         self.last_time = 0
         self.int_max = int_max  # 积分限额
-        self.output_max = output_max
-        self.sub_ctrl = sub_ctrl # 是否开启分段pid
+        self.output_max = output_max  # 控制量限额
+        self.sub_ctrl = sub_ctrl  # 是否开启分段pid
 
     def get_output_delta(self, now_value, expect_value):
         """增量式PID计算方法"""
@@ -33,8 +33,8 @@ class PID_t:
         self.now_value = now_value
         self.now_err = expect_value - now_value
         self.delta_value = self.kp * (self.now_err - self.last_err) + self.ki * \
-                           self.now_err + self.kd * (self.now_err - 2 * self.last_err
-                                                     + self.last_last_err)
+            self.now_err + self.kd * (self.now_err - 2 * self.last_err
+                                      + self.last_last_err)
         return self.now_value + self.delta_value
 
     def get_output(self, now_value, expect_value):
@@ -47,12 +47,15 @@ class PID_t:
 
         output = 0
         if self.sub_ctrl == False:
-            output = self.kp * self.now_err + self.ki * self.int_count + self.kd * (self.now_err - self.last_err)
+            output = self.kp * self.now_err + self.ki * \
+                self.int_count + self.kd * (self.now_err - self.last_err)
         else:
             if abs(self.now_err) > 0.2:
-                output = self.kp * self.now_err + self.ki * self.int_count + self.kd * (self.now_err - self.last_err)
+                output = self.kp * self.now_err + self.ki * \
+                    self.int_count + self.kd * (self.now_err - self.last_err)
             else:
-                output = 0.01 * self.now_err + 0.15 * self.int_count +2 * (self.now_err - self.last_err)
+                output = 0.05 * self.now_err + 0.15 * \
+                    self.int_count + 0.5 * (self.now_err - self.last_err)
 
         if output > self.output_max:
             output = self.output_max
@@ -68,7 +71,7 @@ if __name__ == '__main__':
     y = []
     for i in range(50):
         y_sample = pid.get_output(pid.now_value, 5000)
-        print (y_sample)
+        print(y_sample)
         y.append(y_sample)
     plt.plot(y)
     plt.show()
