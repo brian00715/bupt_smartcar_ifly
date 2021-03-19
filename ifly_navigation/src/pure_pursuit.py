@@ -313,8 +313,8 @@ if __name__ == '__main__':
     # pid实例声明
     ang_vel_pid = pid.PID_t(0.2, 0, 0, output_max=999)  # 角速度控制pid
     yaw_pid = pid.PID_t(4.5, 0, 0.4, output_max=3.5)  # 偏航角控制pid
-    vel_x_pid = pid.PID_t(2, 0.15, 0.2, int_max=10,
-                          output_max=6, sub_ctrl=True)  # 线速度x控制pid
+    vel_x_pid = pid.PID_t(5, 0.15, 0.05, int_max=10,
+                          output_max=6, sub_ctrl=False)  # 线速度x控制pid
     start_time = rospy.get_time()
     try:
         vel_x = 1.5
@@ -363,12 +363,11 @@ if __name__ == '__main__':
             # vel_x_ctrl_value = vel_x_pid.get_output(
             #     path_follower.linear_vel_x, vel_x)
             # twist.angular.z = 0
-            # twist.linear.x = vel_x
+            # twist.linear.x = vel_x_ctrl_value
             # vel_pub.publish(twist)
             # print("ctrl_value:%5.2f now:%5.2f" %
             #       (vel_x_ctrl_value, path_follower.linear_vel_x))
 
-            # >>>轨迹跟踪<<<
             if path_follower.reached_goal == False:
                 path_follower.follow()
             else:
