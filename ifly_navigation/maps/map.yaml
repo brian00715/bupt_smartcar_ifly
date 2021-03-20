@@ -1,4 +1,4 @@
-image: /home/luke/project/ifly_ws/src/ifly_navigation/maps/map.pgm
+image: /home/simon/ifly_luke_ws/src/ifly_navigation/maps/map.pgm
 resolution: 0.050000
 origin: [-0.557024, -6.840480, 0.000000]
 negate: 0
