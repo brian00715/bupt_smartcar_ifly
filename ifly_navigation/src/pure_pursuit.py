@@ -15,8 +15,6 @@ from sensor_msgs.msg import Imu
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 import pid
-from sensor_msgs.msg import LaserScan
-import numpy
 
 # pure_pursuit参数
 k = 0.1  # 前视距离系数
@@ -24,9 +22,9 @@ Lfc = 2.0  # 前视距离
 Kp = 1.0  # 速度P控制器系数
 dt = 0.1  # 时间间隔，单位：s
 L = 2.9  # 车辆轴距，单位：m
-vel_base = 0.25
+
 # 关键点数组
-# [x,y,yaw,max_vel_x,ang_vel_max,theta]
+# [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
     [1.000, -0.000090, 0.000, 2.22, 1.5,55],  # 0
     [2.000, -0.000090, 0.000, 1.85, 1.50,55],  # 0.5
@@ -49,8 +47,8 @@ key_points = [
     [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0,55]  # 17 终点
 ]
 
-end_point = [-0.2, -5.1]
-dyna_end_point = [0.185,-5.05] # 提前终点
+end_point = [-0.2504603767395, -5.2709980011]
+dyna_end_point = [0.953967,-5.794389] # 提前终点
 
 
 def get_key(key_timeout, settings):
@@ -66,31 +64,6 @@ def get_key(key_timeout, settings):
 
 PASS_THRES_RADIUS = 0.4
 
-distance = [0,0,0,0,0,0,0,0]
-ahead_distance = 0
-ahead=np.zeros(180)
-def scan_callback(scan):
-    # rospy.loginfo('header: {0}'.format(scan))
-    # ahead_distance = scan.ranges[360]
-    # print(len(scan.ranges))
-    distance[0] = scan.ranges[0]
-    distance[1] = scan.ranges[90]
-    distance[2] = scan.ranges[180]
-    distance[3] = scan.ranges[270]
-    distance[4] = scan.ranges[360]###
-    distance[5] = scan.ranges[450]
-    distance[6] = scan.ranges[540]
-    distance[7] = scan.ranges[630]
-    # print("distance: ",(distance))
-    # for i in range(len(msg.ranges)):
-    #     distance[i] = msg.ranges[i]
-    # tmp = distance[0:90:1]
-    # left = tmp[::-1]
-    # tmp = distance[270:360:1]
-    # right = tmp[::-1]
-    # tmp = np.concatenate((left,right),axis=0)
-    # for i in range(len(tmp)):
-    #     ahead[i] = tmp[i]
 
 def is_passed(now_pos, next_waypoint):
     dis_to_next_point = math.sqrt(
@@ -112,7 +85,7 @@ def quit(signum, frame):
 
 
 class PathFollower:
-    def __init__(self, forehead_index=40):
+    def __init__(self, forehead_index=55):
         self.global_path = Path()
         self.x = 0
         self.last_x = 0
@@ -256,7 +229,6 @@ class PathFollower:
         # print("len keypoints",len(key_points))
         self.forehead_index = key_points[self.key_points_index][5]
         if self.key_points_index < len(key_points)-1:
-        # if len(poses) > self.forehead_index + 65:
             if is_passed((self.x, self.y),
                          (key_points[self.key_points_index][0], key_points[self.key_points_index][1])):  # 是否经过关键点
                 # 更新期望速度
@@ -278,20 +250,15 @@ class PathFollower:
 
         # 从全局规划路径中取得目标点，forehead_index为前瞻索引，global_path从小车当前位置开始规划，需要向后拓展一些
         poses = self.global_path.poses
-        if len(poses) > 900 or len(poses) < 150:
-            vel_base = 0.45
-        else:
-            vel_base = 0.3
         if len(poses) != 0:
             goal_pose = 0
-        
             # 到终点前全局路径长度不足，不限制前瞻索引会导致访问越界
             # and len(poses)>=self.forehead_index
              
-            # print("len poses %d",len(poses))
+
             # if self.key_points_index < len(key_points)-2 :
             if len(poses) > self.forehead_index + 65:
-                
+                # print("len poses %d",len(poses))
                 [roll, pitch, yaw] = euler_from_quaternion(
                     [poses[self.forehead_index].pose.orientation.x, poses[self.forehead_index].pose.orientation.y,
                      poses[self.forehead_index].pose.orientation.z, poses[self.forehead_index].pose.orientation.w])
@@ -315,27 +282,24 @@ class PathFollower:
 
         delta_yaw = self.get_delta_yaw(self.yaw, goal_yaw)
         goal_yaw = self.yaw + delta_yaw  # 避免-3.14和3.14之间的优弧，取劣弧
-       
 
         # 偏航角控制
         ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)#+delta_yaw*0.05
-        print("angvel %.2f"%(ang_ctrl_value))
         # print("yaw_pid %6.2f delta_yaw %6.2f"%(yaw_pid.get_output(self.yaw, goal_yaw),delta_yaw))
-        # print("ahead = %d"%(ahead_distance))
+
         # 线速度控制
-        # vel_x_ctrl_value = vel_x_pid.get_output(self.linear_vel_x, self.running_speed -abs(ang_ctrl_value)*0.2)
-        vel_x_ctrl_value = self.running_speed - abs(ang_ctrl_value)*0.07  # 角速度太大时要限制线速度，否则车会飞
-        # vel_power = 1.2*(0.7*math.log10(distance[4]+1)+0.15)
-        # vel_power = distance[4]*0.35
-        # print("vel_power = %.2f"%(vel_power))
-        # vel_x_ctrl_value = 0.65*self.running_speed+ vel_power- abs(ang_ctrl_value)*0.1 # 速度=基本速度+前方距离×比例-角速度×比例
-        # print("ctrl_value:%5.2f now:%5.2f" %(vel_x_ctrl_value, self.linear_vel_x))
+        # vel_x_ctrl_value = vel_x_pid.get_output(
+        #     self.linear_vel_x, self.running_speed -
+        #     abs(ang_ctrl_value)*0.2)
+        vel_x_ctrl_value = self.running_speed -  abs(ang_ctrl_value)*0.1  # 角速度太大时要限制线速度，否则车会飞
+        # print("ctrl_value:%5.2f now:%5.2f" %
+        #       (vel_x_ctrl_value, self.linear_vel_x))
 
         # 发布速度指令
         twist.linear.x = vel_x_ctrl_value  # 线速度pid仍需调试
         twist.angular.z = ang_ctrl_value
         vel_pub.publish(twist)
-        # print("now yaw %.2f"%(self.yaw))
+
         # print("yaw_goal:%6.2f yaw_now:%6.2f yaw_ctrl_value:%6.2f vel_x:%5.2f" %
         #       (goal_yaw, self.yaw, ang_ctrl_value, vel_x_ctrl_value))
 
@@ -345,11 +309,12 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower(forehead_index=44)  # 轨迹跟踪器实例
-    scan_sub = rospy.Subscriber('/scan', LaserScan, scan_callback)
-    path_sub = rospy.Subscriber("/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
+    path_follower = PathFollower(forehead_index=54)  # 轨迹跟踪器实例
+    path_sub = rospy.Subscriber(
+        "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
-    odom_sub = rospy.Subscriber("/odom", Odometry, path_follower.update_position)
+    odom_sub = rospy.Subscriber(
+        "/odom", Odometry, path_follower.update_position)
     key_timeout = rospy.get_param("~key_timeout", 0.0)
     if key_timeout == 0.0:
         key_timeout = None
@@ -363,7 +328,7 @@ if __name__ == '__main__':
     start_time = rospy.get_time()
     try:
         vel_x = 2.0
-        goal_yaw = 0.00
+        goal_yaw = -0.79
 
         signal.signal(signal.SIGINT, quit)
         signal.signal(signal.SIGTERM, quit)
