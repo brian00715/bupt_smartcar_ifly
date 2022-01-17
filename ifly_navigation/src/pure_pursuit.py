@@ -26,28 +26,29 @@ L = 2.9  # 车辆轴距，单位：m
 # 关键点数组
 # [x,y,yaw,max_vel_x,acc_lim,theta]
 key_points = [
-    [2.402670, -0.000090, 0.000, 1.8, 1.5],  # 0
-    [3.75, -0.000090, 0.000, 0.75, 1.5],  # 1
-    [4.702972, -1.080354, 3.082496, 1.25, 1.5],  # 2
-    [2.936867, -1.032038, -3.14, 1.43, 1.5],  # 3
-    [1.995490, -1.044512, -2.983582, 0.8, 1.5],  # 4
-    [1.339966, -2.061234, -2.934374, 1.0, 1.5],  # 5
-    [1.741479, -2.556157, -1.542630, 0.85, 1.5],  # 6
-    # [0.661139, -3.180960, -1.812663,1.3],  # 7
+    [1.000, -0.000090, 0.000, 2.22, 1.5, 55],  # 0
+    [2.000, -0.000090, 0.000, 1.82, 1.50, 55],  # 0.5
+    [3.7, -0.000090, 0.000, 0.75, 1.5, 52],  # 1 | 0.76
+    [5.044099, -0.938676, 3.082496, 1.4, 1.5, 57],  # 2|  4.702972, -1.080354 55 
+    [2.936867, -1.032038, -3.14, 1.47, 1.5, 55],  # 3
+    [1.995490, -1.044512, -2.983582, 0.77, 1.5, 67],  # 4 |0.8 55
+    [1.339966, -2.061234, -2.934374, 1.0, 1.5, 50],  # 5
+    [1.741479, -2.556157, -1.542630, 1.0, 1.5, 50],  # 6
+    [0.779905, -3.511548, -1.812663, 1.0, 1.5, 50],  # 7
     # [4.646070, -1.056370, -2.934374,1.3],  # 8
-    [1.504895, -4.168083, 0.000, 1.35, 1.5],  # 9
-    [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
-    [4.295692, -3.125136, 0.000, 1.3, 1.5],  # 11
-    [5.027173, -3.123793, 0.000, 1.1, 1.5],  # 12
-    [5.194778, -4.593526, -2.392219, 2.0, 2.0],  # 13
-    [2.902147, -5.983389, 0, 1.85, 2],  # 14
-    [1.717385, -5.971060, 0, 1.55, 2],  # 15
-    [0.836030, -5.705181, 2.962307, 0.00, 1.0],  # 16
-    [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0]  # 17 终点
+    [1.665421, -4.329203, 0.063971, 1.45, 1.6, 55],  # 9 |1.4
+    # [2.956114, -4.201780, 0.000, 1.1, 1.5],  # 10
+    [4.295692, -3.125136, 0.000, 1.25, 1.5, 55],  # 11 |55
+    [5.027173, -3.123793, 0.000, 1.05, 1.5, 60],  # 12 |55
+    [5.308256, -4.321690, -2.392219, 2.0, 2.0, 70],  # 13 | 5.194778, -4.593526 55
+    [2.902147, -5.983389, 0, 1.96, 2, 70],  # 14 |55
+    [1.717385, -5.971060, 0, 1.60, 2, 70],  # 15 | 55
+    [0.836030, -5.705181, 2.962307, 0.00, 1.0, 65],  # 16 | 55
+    [-0.2504603767395, -5.2709980011, 2.446521, 0.0, 0, 55]  # 17 终点
 ]
 
 end_point = [-0.2504603767395, -5.2709980011]
-dyna_end_point = [0.953967,-5.794389] # 提前终点
+dyna_end_point = [0.953967, -5.794389]  # 提前终点
 
 
 def get_key(key_timeout, settings):
@@ -84,7 +85,7 @@ def quit(signum, frame):
 
 
 class PathFollower:
-    def __init__(self, forehead_index=40):
+    def __init__(self, forehead_index=55):
         self.global_path = Path()
         self.x = 0
         self.last_x = 0
@@ -225,17 +226,20 @@ class PathFollower:
         """顶层控制函数"""
         # print("key_point_index:%d running_speed:%.2f" %
         #       (self.key_points_index, self.running_speed))
+        # print("len keypoints",len(key_points))
+        self.forehead_index = key_points[self.key_points_index][5]
         if self.key_points_index < len(key_points)-1:
             if is_passed((self.x, self.y),
                          (key_points[self.key_points_index][0], key_points[self.key_points_index][1])):  # 是否经过关键点
                 # 更新期望速度
                 self.running_speed = key_points[self.key_points_index][3]
                 self.key_points_index += 1
-                print("index:",self.key_points_index)
+                print("index:", self.key_points_index)
         else:  # 终点的判断要更精确
+            print("index end")
             global PASS_THRES_RADIUS
             PASS_THRES_RADIUS = 0.4
-            if is_passed((self.x, self.y),(dyna_end_point[0],dyna_end_point[1])):
+            if is_passed((self.x, self.y), (dyna_end_point[0], dyna_end_point[1])):
                 self.running_speed = 0
                 twist = Twist()
                 twist.linear.x = 0.00
@@ -249,13 +253,18 @@ class PathFollower:
         if len(poses) != 0:
             goal_pose = 0
             # 到终点前全局路径长度不足，不限制前瞻索引会导致访问越界
-            if self.key_points_index < len(key_points)-2:
+            # and len(poses)>=self.forehead_index
+
+            # if self.key_points_index < len(key_points)-2 :
+            if len(poses) > self.forehead_index + 65:
+                # print("len poses %d",len(poses))
                 [roll, pitch, yaw] = euler_from_quaternion(
                     [poses[self.forehead_index].pose.orientation.x, poses[self.forehead_index].pose.orientation.y,
                      poses[self.forehead_index].pose.orientation.z, poses[self.forehead_index].pose.orientation.w])
                 goal_pose = (poses[self.forehead_index].pose.position.x,
                              poses[self.forehead_index].pose.position.y, yaw)
             else:
+                print("final goal")
                 goal_pose = (-0.2504603767395, -5.2709980011, -3.14)
             self.control(goal_pose)
 
@@ -274,7 +283,9 @@ class PathFollower:
         goal_yaw = self.yaw + delta_yaw  # 避免-3.14和3.14之间的优弧，取劣弧
 
         # 偏航角控制
-        ang_ctrl_value = yaw_pid.get_output(self.yaw, goal_yaw)
+        ang_ctrl_value = yaw_pid.get_output(
+            self.yaw, goal_yaw)  # +delta_yaw*0.05
+        # print("yaw_pid %6.2f delta_yaw %6.2f"%(yaw_pid.get_output(self.yaw, goal_yaw),delta_yaw))
 
         # 线速度控制
         # vel_x_ctrl_value = vel_x_pid.get_output(
@@ -299,7 +310,7 @@ if __name__ == '__main__':
 
     rospy.init_node('pure_pursuit_controller')
     vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-    path_follower = PathFollower(forehead_index=44)  # 轨迹跟踪器实例
+    path_follower = PathFollower(forehead_index=54)  # 轨迹跟踪器实例
     path_sub = rospy.Subscriber(
         "/move_base/GlobalPlanner/plan", Path, path_follower.update_globle_path)  # 订阅全局规划器发布的路径
     imu_sub = rospy.Subscriber("/imu", Imu, path_follower.update_posture)
@@ -312,12 +323,12 @@ if __name__ == '__main__':
     twist = Twist()
     # pid实例声明
     ang_vel_pid = pid.PID_t(0.2, 0, 0, output_max=999)  # 角速度控制pid
-    yaw_pid = pid.PID_t(4.5, 0, 0.4, output_max=3.5)  # 偏航角控制pid
-    vel_x_pid = pid.PID_t(2, 0.15, 0.2, int_max=10,
-                          output_max=6, sub_ctrl=True)  # 线速度x控制pid
+    yaw_pid = pid.PID_t(4.5, 0, 0.4, output_max=3.64)  # 偏航角控制pid
+    vel_x_pid = pid.PID_t(5, 0.15, 0.05, int_max=10,
+                          output_max=6, sub_ctrl=False)  # 线速度x控制pid
     start_time = rospy.get_time()
     try:
-        vel_x = 1.5
+        vel_x = 2.0
         goal_yaw = -0.79
 
         signal.signal(signal.SIGINT, quit)
@@ -339,15 +350,15 @@ if __name__ == '__main__':
             #     exit(0)
 
             # 定时改变数值，调试用
-            if (rospy.get_time()-start_time) > 4:
-                start_time = rospy.get_time()
-                change_flag = -change_flag
-                if change_flag == 1:
-                    vel_x = 1.5
-                    goal_yaw = 0.79
-                elif change_flag == -1:
-                    vel_x = -1.5
-                    goal_yaw = -0.79
+            # if (rospy.get_time()-start_time) > 4:
+            #     start_time = rospy.get_time()
+            #     change_flag = -change_flag
+            #     if change_flag == 1:
+            #         vel_x = 1.5
+            #         goal_yaw = 0.79
+            #     elif change_flag == -1:
+            #         vel_x = -1.5
+            #         goal_yaw = -0.79
 
             # 偏航角控制调试
             # delta_yaw = path_follower.get_delta_yaw(

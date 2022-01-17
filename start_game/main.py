@@ -30,10 +30,9 @@ def launch_pkg():
     show('即将打开导航文件')
     nav_cmd = [
         'roscore',
-        'sleep 1; roslaunch gazebo_pkg race.launch', 
-        'sleep 4; roslaunch ifly_navigation ifly_navigation.launch',
-        # 'sleep 5; rosrun ifly_navigation nav_keypoints.py'
-        'rosrun ifly_navigation pure_pursuit.py'
+        'sleep 2; roslaunch gazebo_pkg race.launch', 
+        'sleep 3; roslaunch ifly_navigation ifly_navigation.launch',
+        'sleep 1; rosrun ifly_navigation pure_pursuit.py',
     ]
     open_terminal(nav_cmd)
 
@@ -69,7 +68,7 @@ def main():
             save(node.get_topic())
             log_start = node.curr_time.secs
         # print(node.client.get_goal_status_text())
-        time.sleep(0.01)
+        time.sleep(0.1)
 
     end = node.curr_time.secs
     n_end = node.curr_time.nsecs

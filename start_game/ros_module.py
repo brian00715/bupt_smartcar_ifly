@@ -55,22 +55,15 @@ class ROSNavNode(object):
         '''
         从文件中读取目标点位置
         '''
-        # with open('pose.json', 'r') as f:
-        #     text = json.loads(f.read())
-        #     self.pos_x = text['position']['x']
-        #     self.pos_y = text['position']['y']
-        #     self.pos_z = text['position']['z']
-        #     self.ori_x = text['orientation']['x']
-        #     self.ori_y = text['orientation']['y']
-        #     self.ori_z = text['orientation']['z']
-        #     self.ori_w = text['orientation']['w']
-        self.pos_x = -0.204603767395
-        self.pos_y = -5.1709980011
-        self.pos_z = 0.0
-        self.ori_x = 0.00
-        self.ori_y = 0.00
-        self.ori_z = 0.999972787533
-        self.ori_w = 0.00737727546307
+        with open('pose.json', 'r') as f:
+            text = json.loads(f.read())
+            self.pos_x = text['position']['x']
+            self.pos_y = text['position']['y']
+            self.pos_z = text['position']['z']
+            self.ori_x = text['orientation']['x']
+            self.ori_y = text['orientation']['y']
+            self.ori_z = text['orientation']['z']
+            self.ori_w = text['orientation']['w']
         
 
     def _goal_pose(self):
